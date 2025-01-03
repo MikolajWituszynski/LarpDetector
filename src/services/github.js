@@ -20,7 +20,6 @@ const fetchGitHubAPI = async (endpoint) => {
         'User-Agent': 'GitHub-Health-Check'
       }
     });
-    console.log('Token:', window._env_?.REACT_APP_GITHUB_TOKEN);
 
 
     if (!response.ok) {
