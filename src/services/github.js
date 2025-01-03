@@ -18,7 +18,7 @@ const fetchGitHubAPI = async (endpoint) => {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'GitHub-Health-Check',
-      'Authorization': `Bearer ${githubToken}`
+      'Authorization': `Bearer ${process.env.REACT_APP_GITHUB_TOKEN}`
       }
     });
     
