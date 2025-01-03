@@ -1,7 +1,20 @@
 {
   "name": "github-analyzer",
+  
+    "homepage": "https://yourusername.github.io/github-analyzer",
+    "scripts": {
+      "start": "react-scripts start",
+      "build": "react-scripts build",
+      "test": "react-scripts test",
+      "eject": "react-scripts eject",
+      "predeploy": "npm run build",
+      "deploy": "gh-pages -d build"
+    },
+  
   "version": "0.1.0",
   "private": true,
+
+  
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-slot": "^1.1.1",
@@ -22,12 +35,7 @@
     "tailwindcss-animate": "^1.0.7",
     "web-vitals": "^4.2.4"
   },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
+  
   "eslintConfig": {
     "extends": [
       "react-app",
