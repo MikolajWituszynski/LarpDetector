@@ -20,7 +20,7 @@ jobs:
         
       - name: Build
         env:
-          REACT_APP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REACT_APP_GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
         run: npm run build
         
       - name: Deploy
