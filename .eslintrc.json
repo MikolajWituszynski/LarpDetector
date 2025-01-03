@@ -1,0 +1,7 @@
+{
+    "rules": {
+      "no-unused-vars": "off",
+      "jsx-a11y/heading-has-content": "off", 
+      "no-useless-escape": "off"
+    }
+  }
