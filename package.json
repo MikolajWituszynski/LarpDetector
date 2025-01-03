@@ -1,7 +1,7 @@
 {
   "name": "github-analyzer",
   
-    "homepage": "https://yourusername.github.io/github-analyzer",
+    "homepage": "https://MikolajWituszynski.github.io/github-analyzer",
     "scripts": {
       "start": "react-scripts start",
       "build": "react-scripts build",
