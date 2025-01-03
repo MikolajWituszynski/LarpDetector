@@ -21,7 +21,9 @@ const fetchGitHubAPI = async (endpoint) => {
       'Authorization': `Bearer ${window._env_.REACT_APP_GITHUB_TOKEN}`
       }
     });
-    
+    console.log('Token:', window._env_?.REACT_APP_GITHUB_TOKEN);
+
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `GitHub API error: ${response.status} ${response.statusText}`);
