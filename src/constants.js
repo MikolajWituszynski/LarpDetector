@@ -7,7 +7,7 @@ import {
   Users,
   Shield,
   GitBranch,
-  AlertTriangle
+  AlertTriangle,Map,ChevronLeft
 } from 'lucide-react';
 
 export const TRUST_FACTORS = {
@@ -60,7 +60,13 @@ export const TABS = [
     id: 'risks',
     label: 'Risks',
     icon: AlertTriangle,
-  }
+  },
+  {
+    id: 'roadmap',
+    label: 'Roadmap',
+    icon: Map,
+    ChevronLeft  // Import this from lucide-react
+  },
 ];
 
 export const getHealthScoreColor = (score) => {
