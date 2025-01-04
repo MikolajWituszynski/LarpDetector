@@ -7,7 +7,7 @@ const RoadmapDetails = () => {
     {
       title: "ElizaOS AI Agent Integration",
       status: "In Development",
-      timeline: "Q1 2024",
+      timeline: "Q1 2025",
       description: "AI assistant for comprehensive project analysis and risk detection",
       features: [
         {

@@ -155,7 +155,7 @@ const fetchSocialData = async (url) => {
           {/* Header with working buttons */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">⌘</span>
+              <span className="text-2xl">⌘ Code_Crunch </span>
               <h1 className="m-0 text-2xl"></h1>
             </div>
             <div className="flex items-center gap-2">
