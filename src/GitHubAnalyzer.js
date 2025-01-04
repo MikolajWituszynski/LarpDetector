@@ -13,34 +13,100 @@ import SecurityTab from './components/tab-contents/SecurityTab';
 import BranchesTab from './components/tab-contents/BranchesTab';
 import RisksTab from './components/tab-contents/RisksTab';
 import RoadmapTab from './components/tab-contents/RoadmapTab';
-import { Map, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Map, ChevronRight, ChevronLeft,Twitter } from 'lucide-react';
 import RoadmapDetails from './components/RoadmapDetails';
 import  {Button, buttonVariants}  from "./components/ui/button";
 import  {Badge } from "./components/ui/Badge";
+import RoadmapSidebar from './components/tab-contents/RoadmapSidebar';
+import SocialsSidebar from './components/tab-contents/SocialsSidebar';
 
 const GitHubAnalyzer = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const [roadmapOpen, setRoadmapOpen] = useState(false);
+  const [socialsOpen, setSocialsOpen] = useState(false);
 
   const [url, setUrl] = useState('');
+
   const [loading, setLoading] = useState(false);
+
   const [data, setData] = useState(null);
+
   const [error, setError] = useState(null);
+
   const [activeTab, setActiveTab] = useState('overview');
 
+// Helper function to fetch social data
+const fetchSocialData = async (url) => {
+  // In real implementation, this would fetch data from your backend
+  // Mock data for demonstration
+  return {
+    twitter: {
+      followers: 5000,
+      createdAt: '2023-01-01',
+      handleChanges: 2,
+      avgDailyGrowth: '1.2%',
+      engagementRate: '3.5%',
+      riskIndicators: [
+        {
+          title: 'Recent Handle Change',
+          description: 'Twitter handle was changed 2 days ago',
+          severity: 'warning'
+        }
+      ]
+    },
+    telegram: {
+      members: 2500,
+      activeMembers: 1200,
+      messageFrequency: 450,
+      spamProtection: true,
+      verificationLevel: 'High',
+      activity: {
+        '24h': 2400,
+        '7d': 15000,
+        '30d': 45000
+      }
+    },
+    tokenLocks: {
+      totalLocked: '45%',
+      averageDuration: '180 days',
+      lockCount: 3,
+      locks: [
+        {
+          type: 'Team Tokens',
+          amount: '1,000,000',
+          percentage: 10,
+          duration: '365 days',
+          progress: 30,
+          isVesting: true
+        }
+      ]
+    },
+    socialScore: 85
+  };
+};
   const handleAnalyze = async () => {
     if (!url) return;
     setLoading(true);
     setError(null);
     
     try {
-      const result = await analyzeGitHubRepo(url);
-      setData(result);
+      // Fetch both GitHub and social data
+      const [githubResult, socialResult] = await Promise.all([
+        analyzeGitHubRepo(url),
+        fetchSocialData(url)
+      ]);
+      
+      // Merge the data
+      setData({
+        ...githubResult,
+        social: socialResult
+      });
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+};
 
   const renderTabContent = () => {
     if (!data) return null;
@@ -70,62 +136,54 @@ const GitHubAnalyzer = () => {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-30"
-          onClick={() => setSidebarOpen(false)}
+   <div className="flex min-h-screen bg-gray-50">
+      {/* Both sidebars */}
+      <RoadmapSidebar 
+        open={roadmapOpen} 
+        onClose={() => setRoadmapOpen(false)} 
+      />
+      
+      <SocialsSidebar 
+        open={socialsOpen} 
+        onClose={() => setSocialsOpen(false)} 
+        data={data}
         />
-      )}
-
-      {/* Sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-40
-               w-102
-
-        transform transition-transform duration-200 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        bg-white border-r border-gray-200
-      `}>
-        <div className="h-full flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-blue-600">
-              <Map className="h-5 w-5" />
-              <h2 className="font-medium">Development Roadmap</h2>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <RoadmapDetails />
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="flex-1">
         <div className="font-mono p-5 max-w-6xl mx-auto">
-          {/* Header */}
+          {/* Header with working buttons */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⌘</span>
-              <h1 className="m-0 text-2xl">Repository Health Check</h1>
+              <h1 className="m-0 text-2xl"></h1>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setSidebarOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Map className="h-4 w-4" />
-              Roadmap
-              <Badge variant="secondary" className="ml-1">New</Badge>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  console.log('Opening roadmap...');  // Add this for debugging
+                  setRoadmapOpen(true);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Map className="h-4 w-4" />
+                Roadmap
+                <Badge variant="secondary" className="ml-1">New</Badge>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  console.log('Opening socials...');  // Add this for debugging
+                  setSocialsOpen(true);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Twitter className="h-4 w-4" />
+                Socials
+                <Badge variant="secondary" className="ml-1">New</Badge>
+              </Button>
+            </div>
           </div>
 
           {/* Input Section */}

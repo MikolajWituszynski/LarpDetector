@@ -7,7 +7,7 @@ const RoadmapDetails = () => {
     {
       title: "ElizaOS AI Agent Integration",
       status: "In Development",
-      timeline: "Q1-Q2 2024",
+      timeline: "Q1 2024",
       description: "AI assistant for comprehensive project analysis and risk detection",
       features: [
         {
@@ -27,7 +27,7 @@ const RoadmapDetails = () => {
     {
       title: "Social Signal Analysis",
       status: "Planned",
-      timeline: "Q2-Q3 2024",
+      timeline: "Q1 2024",
       description: "Deep analysis of project's social footprint and team authenticity",
       features: [
         {
@@ -47,7 +47,7 @@ const RoadmapDetails = () => {
     {
       title: "Launch Analysis Tools",
       status: "Planned",
-      timeline: "Q3-Q4 2024",
+      timeline: "Q2 2025",
       description: "Detect potential risks in token launches and initial distributions",
       features: [
         {
@@ -67,7 +67,7 @@ const RoadmapDetails = () => {
     {
       title: "Advanced Alerts",
       status: "Planned",
-      timeline: "Q1 2025",
+      timeline: "Q2 2025",
       description: "Real-time monitoring and alert system",
       features: [
         {
