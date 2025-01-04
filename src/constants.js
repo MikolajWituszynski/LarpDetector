@@ -60,17 +60,6 @@ export const TABS = [
     id: 'risks',
     label: 'Risks',
     icon: AlertTriangle,
-  },
-  {
-    id: 'roadmap',
-    label: 'Roadmap',
-    icon: Map,
-    ChevronLeft  // Import this from lucide-react
-  },
-  {
-    id: 'socials',
-    label: 'Socials & Locks',
-    icon: Twitter,
   }
 ];
 
