@@ -18,10 +18,12 @@ const fetchGitHubAPI = async (endpoint) => {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'GitHub-Health-Check',
-      'Authorization': `Bearer ${process.env.REACT_APP_GITHUB_TOKEN}`
+              'Authorization': `Bearer ${process.env.REACT_APP_GITHUB_TOKEN}`
+
       }
     });
-    
+
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `GitHub API error: ${response.status} ${response.statusText}`);
