@@ -27,7 +27,7 @@ const RoadmapDetails = () => {
     {
       title: "Social Signal Analysis",
       status: "Planned",
-      timeline: "Q1 2024",
+      timeline: "Q1 2025",
       description: "Deep analysis of project's social footprint and team authenticity",
       features: [
         {
