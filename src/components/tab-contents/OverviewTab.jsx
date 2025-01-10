@@ -1,133 +1,166 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertTriangle,Clock,GitPullRequest,Shield,Star,GitFork,Users } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import MetricCard from '../MetricCard';
 import AnalysisSection from '../AnalysisSection';
 import { TRUST_FACTORS } from '../../constants';
+import Progress from '../ui/Progress';
 
 const OverviewTab = ({ data }) => {
   if (!data) return null;
 
-  const { timeMetrics, metrics, health, commitAnalysis } = data;
+  const { timeMetrics, health, commitAnalysis, contributors, repoData, codeQuality } = data;
 
-  const getHealthScoreColor = (score) => {
-    if (score >= 80) {
-      return {
-        bg: 'bg-green-100',
-        text: 'text-green-800',
-        accent: 'text-green-600',
-        border: 'border-green-200'
-      };
-    }
-    if (score >= 60) {
-      return {
-        bg: 'bg-yellow-100',
-        text: 'text-yellow-800',
-        accent: 'text-yellow-600',
-        border: 'border-yellow-200'
-      };
-    }
-    if (score >= 40) {
-      return {
-        bg: 'bg-orange-100',
-        text: 'text-orange-800',
-        accent: 'text-orange-600',
-        border: 'border-orange-200'
-      };
-    }
-    return {
-      bg: 'bg-red-100',
-      text: 'text-red-800',
-      accent: 'text-red-600',
-      border: 'border-red-200'
-    };
+  // Calculate metrics
+  const metrics = {
+    stars: repoData?.stargazers_count || 0,
+    forks: repoData?.forks_count || 0,
+    contributors: contributors?.numberOfContributors || 0,
+    openIssues: repoData?.open_issues_count || 0,
+    weeklyCommits: commitAnalysis?.frequency ? 
+      Math.round((commitAnalysis.frequency / (timeMetrics?.age / 7 || 1)) * 10) / 10 : 0
   };
 
-  const scoreColors = getHealthScoreColor(health.score);
+  // Calculate code quality indicators
+  const qualityChecks = [
+    { label: 'Documentation', passing: codeQuality?.hasReadme },
+    { label: 'Security Policy', passing: codeQuality?.hasSecurityPolicy },
+    { label: 'Code Testing', passing: codeQuality?.codeStyle?.hasTypeChecking },
+    { label: 'Automated Checks', passing: codeQuality?.codeStyle?.hasLinter }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Main Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`rounded-lg border ${scoreColors.border} p-6`}>
-          <div className="flex flex-col space-y-1.5">
-            <h3 className="font-medium text-sm text-gray-600">Health Score</h3>
-            <div className={`text-2xl font-bold ${scoreColors.text}`}>
-              {health.score}/100
-            </div>
-            <div className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${scoreColors.bg} ${scoreColors.text}`}>
-              {health.score >= 80 ? 'Excellent' :
-               health.score >= 60 ? 'Good' :
-               health.score >= 40 ? 'Fair' :
-               'Poor'}
-            </div>
-            <p className="text-sm text-gray-500 mt-1">
-              Overall repository health based on multiple factors
-            </p>
+      {/* Health Score Overview */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Repository Health Analysis</h2>
+          <div className={`px-4 py-2 rounded-full text-lg font-semibold ${
+            health.score >= 80 ? 'bg-green-100 text-green-800' :
+            health.score >= 60 ? 'bg-blue-100 text-blue-800' :
+            'bg-yellow-100 text-yellow-800'
+          }`}>
+            {health.score}/100
           </div>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-sm text-gray-600">Repository Age</p>
+              <p className="font-medium">{Math.round(timeMetrics.age / 30)} months</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <GitPullRequest className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-sm text-gray-600">Last Update</p>
+              <p className="font-medium">{timeMetrics.lastUpdated} days ago</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Shield className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="text-sm text-gray-600">Development Status</p>
+              <p className="font-medium">{timeMetrics.isActive ? 'Active' : 'Inactive'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Community Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard
-          title="Activity Level"
-          value={commitAnalysis.isConsistent ? 'Active' : 'Irregular'}
-          description="Repository activity level based on commit patterns"
+          title="Stars"
+          value={metrics.stars.toLocaleString()}
+          description="Community Interest"
+          icon={Star}
         />
         <MetricCard
-          title="Community Size"
-          value={metrics.contributorCount}
-          description="Number of unique contributors"
+          title="Forks"
+          value={metrics.forks.toLocaleString()}
+          description="Project Forks"
+          icon={GitFork}
+        />
+        <MetricCard
+          title="Contributors"
+          value={metrics.contributors.toLocaleString()}
+          description="Unique Contributors"
+          icon={Users}
+        />
+        <MetricCard
+          title="Issues"
+          value={metrics.openIssues.toLocaleString()}
+          description="Open Issues"
+          icon={GitPullRequest}
         />
       </div>
 
-      {/* Repository Details */}
-      <AnalysisSection title="Repository Details">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-600">Age</h4>
-            <p className="text-lg">{timeMetrics.age} days</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Development Activity */}
+        <AnalysisSection title="Development Activity">
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Weekly Commits</span>
+                <span className="text-sm text-gray-600">{metrics.weeklyCommits} avg</span>
+              </div>
+              <Progress 
+                value={Math.min((metrics.weeklyCommits / 10) * 100, 100)} 
+                className="h-2"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Active Days</p>
+                <p className="text-xl font-semibold">{
+                  commitAnalysis?.activityPatterns?.weekdayActivity || 0
+                }</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Contributors</p>
+                <p className="text-xl font-semibold">{metrics.contributors}</p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-600">Last Updated</h4>
-            <p className="text-lg">{timeMetrics.lastUpdated} days ago</p>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-600">Status</h4>
-            <p className="text-lg">{timeMetrics.isActive ? 'Active' : 'Inactive'}</p>
-          </div>
-        </div>
-      </AnalysisSection>
+        </AnalysisSection>
 
-      {/* Rest of the component remains the same */}
-      <AnalysisSection title="Activity Metrics">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <MetricCard
-            title="Issue Resolution Rate"
-            value={`${(metrics.issueResolutionRate * 100).toFixed(1)}%`}
-            description="Percentage of closed issues"
-          />
-          <MetricCard
-            title="PR Merge Rate"
-            value={`${(metrics.pullRequestRate * 100).toFixed(1)}%`}
-            description="Percentage of merged pull requests"
-          />
-          <MetricCard
-            title="Issues per Contributor"
-            value={metrics.issuesPerContributor.toFixed(1)}
-            description="Average issues handled per contributor"
-          />
-        </div>
-      </AnalysisSection>
+        {/* Code Quality */}
+        <AnalysisSection title="Code Quality">
+          <div className="space-y-3">
+            {qualityChecks.map((check, index) => (
+              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <span className="font-medium">{check.label}</span>
+                {check.passing ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                )}
+              </div>
+            ))}
+          </div>
+        </AnalysisSection>
+      </div>
 
-      {/* Trust Factors */}
-      {health.trustFactors.length > 0 && (
-        <AnalysisSection title="Trust Indicators">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {health.trustFactors.map((factor) => (
-              <div key={factor} className="flex items-start gap-2 p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium text-green-900">{factor}</h4>
-                  <p className="text-sm text-green-700">{TRUST_FACTORS[factor]}</p>
+      {/* Contributors */}
+      {contributors?.contributionDistribution && (
+        <AnalysisSection title="Top Contributors">
+          <div className="space-y-4">
+            {contributors.contributionDistribution.slice(0, 5).map((contributor) => (
+              <div key={contributor.login} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">{contributor.login}</span>
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {contributor.percentage.toFixed(1)}%
+                  </span>
                 </div>
+                <Progress 
+                  value={contributor.percentage} 
+                  className="h-2"
+                />
               </div>
             ))}
           </div>
@@ -135,12 +168,12 @@ const OverviewTab = ({ data }) => {
       )}
 
       {/* Risk Factors */}
-      {health.riskFactors.length > 0 && (
+      {health.riskFactors && health.riskFactors.length > 0 && (
         <AnalysisSection title="Risk Factors">
           <Alert variant="destructive" className="border-red-200">
             <AlertTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Potential Concerns
+              Areas of Concern
             </AlertTitle>
             <AlertDescription>
               <ul className="list-none pl-0 mt-2 space-y-2">
@@ -153,26 +186,6 @@ const OverviewTab = ({ data }) => {
               </ul>
             </AlertDescription>
           </Alert>
-        </AnalysisSection>
-      )}
-
-      {/* Owner Information */}
-      {data.repoData.ownerInfo && (
-        <AnalysisSection title="Repository Owner">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-600">Type</h4>
-              <p className="text-lg">{data.repoData.ownerInfo.type}</p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-600">Public Repositories</h4>
-              <p className="text-lg">{data.repoData.ownerInfo.publicRepos}</p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-600">Followers</h4>
-              <p className="text-lg">{data.repoData.ownerInfo.followers}</p>
-            </div>
-          </div>
         </AnalysisSection>
       )}
     </div>

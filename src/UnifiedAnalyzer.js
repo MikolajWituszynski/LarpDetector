@@ -50,8 +50,6 @@ const UnifiedAnalyzer = ({ type = 'github' }) => {
 
     switch (activeTab) {
       case "overview": return <OverviewTab data={data} />;
-      case "activity": return <ActivityTab data={data} />;
-      case "community": return <CommunityTab data={data} />;
       default: return <OverviewTab data={data} />;
     }
   };

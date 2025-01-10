@@ -17,7 +17,7 @@ const fetchGitHubAPI = async (endpoint) => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'GitHub-Health-Check'
+        'User-Agent': 'GitHub-Health-Check'      
 
       }
     });
@@ -67,7 +67,7 @@ export { calculateAverageFileSize, findLargestFile, calculateMaxDirectoryDepth }
 export const analyzeGitHubRepo = async (url) => {
   const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)(\/.*)?$/);
   if (!match) {
-    throw new Error('Invalid GitHub repository URL. Format should be: https://github.com/owner/repo');
+    throw new Error('Invalid GitHub repository URL');
   }
 
   const [, owner, repo] = match;
@@ -99,43 +99,83 @@ export const analyzeGitHubRepo = async (url) => {
       fetchGitHubAPI(`/repos/${owner}/${repo}/actions/workflows`).catch(() => ({ workflows: [] })),
     ]);
 
-    const timeMetrics = calculateTimeMetrics(repoData.created_at, repoData.updated_at);
-    const projectHealth = await analyzeProjectHealth(repoData, commits, issues, contributors);
-    const ownerAnalysis = await analyzeOwner(owner);
+    // Calculate time metrics
+    const now = new Date();
+    const createdAt = new Date(repoData.created_at);
+    const updatedAt = new Date(repoData.updated_at);
+    const lastCommitDate = commits.length > 0 ? new Date(commits[0].commit.author.date) : updatedAt;
+    
+    const timeMetrics = {
+      age: Math.floor((now - createdAt) / (1000 * 60 * 60 * 24)),
+      lastUpdated: Math.floor((now - lastCommitDate) / (1000 * 60 * 60 * 24)),
+      isActive: (now - lastCommitDate) / (1000 * 60 * 60 * 24) < 90 // Consider active if updated within 90 days
+    };
+
+    // Calculate commit analysis
+    const commitAnalysis = {
+      frequency: commits.length,
+      isConsistent: commits.length > 0,
+      authors: new Set(commits.map(c => c.commit.author.email)).size
+    };
+
+    // Analyze code quality
+    const codeQuality = {
+      hasReadme: contents.some(f => f.name.toLowerCase() === 'readme.md'),
+      hasContributing: contents.some(f => f.name.toLowerCase() === 'contributing.md'),
+      hasLicense: contents.some(f => f.name.toLowerCase() === 'license'),
+      hasChangelog: contents.some(f => f.name.toLowerCase() === 'changelog.md'),
+      codeStyle: {
+        hasLinter: contents.some(f => f.name.match(/\.(eslint|prettier|stylelint)rc/)),
+        hasTypeChecking: contents.some(f => f.name === 'tsconfig.json'),
+        hasEditorConfig: contents.some(f => f.name === '.editorconfig'),
+        hasFormatting: contents.some(f => f.name.match(/\.(prettier|clang-format)/))
+      }
+    };
+
+    // Process contributors
+    const contributorStats = {
+      numberOfContributors: contributors.length,
+      totalContributions: contributors.reduce((sum, c) => sum + c.contributions, 0),
+      contributionDistribution: contributors.map(c => ({
+        login: c.login,
+        percentage: (c.contributions / contributors.reduce((sum, cont) => sum + cont.contributions, 0)) * 100
+      }))
+    };
+
+    // Calculate base health score
+    let healthScore = 60; // Start with base score
+
+    // Activity score (max 15)
+    if (timeMetrics.isActive) healthScore += 15;
+
+    // Community score (max 15)
+    if (repoData.stargazers_count > 1000) healthScore += 15;
+    else if (repoData.stargazers_count > 100) healthScore += 10;
+    else if (repoData.stargazers_count > 10) healthScore += 5;
+
+    // Code quality score (max 10)
+    if (codeQuality.hasReadme) healthScore += 3;
+    if (codeQuality.hasContributing) healthScore += 2;
+    if (codeQuality.hasLicense) healthScore += 2;
+    if (codeQuality.codeStyle.hasLinter || codeQuality.codeStyle.hasTypeChecking) healthScore += 3;
 
     return {
       repoData: {
         ...repoData,
-        description: repoData.description || 'No description provided',
-        ownerInfo: ownerAnalysis
+        description: repoData.description || 'No description provided'
       },
       timeMetrics,
-      health: projectHealth,
-      commitAnalysis: analyzeCommitPatterns(commits),
-      contributors: analyzeContributors(contributors),
+      commitAnalysis,
+      contributors: contributorStats,
       languages,
-      branches: analyzeBranches(branches),
-      security: analyzeSecurityFeatures(contents, workflows?.workflows || []),
-      metrics: calculateMetrics(issues, pulls, contributors),
-      codeQuality: {
-        codeStyle: {
-          hasLinter: contents.some(f => f.name.match(/\.(eslint|prettier|stylelint)rc/)),
-          hasEditorConfig: contents.some(f => f.name === '.editorconfig'),
-          hasFormatting: contents.some(f => f.name.match(/\.(prettier|clang-format)/)),
-          hasTypeChecking: contents.some(f => f.name === 'tsconfig.json')
-        },
-        hasGitIgnore: contents.some(f => f.name === '.gitignore'),
-        hasGitAttributes: contents.some(f => f.name === '.gitattributes'),
-        hasPackageLock: contents.some(f => f.name === 'package-lock.json'),
-        hasReadme: contents.some(f => f.name.toLowerCase() === 'readme.md'),
-        hasContributing: contents.some(f => f.name.toLowerCase() === 'contributing.md'),
-        hasLicense: contents.some(f => f.name.toLowerCase() === 'license'),
-        hasChangelog: contents.some(f => f.name.toLowerCase() === 'changelog.md'),
-        complexity: {
-          averageFileSize: calculateAverageFileSize(contents),
-          largestFile: findLargestFile(contents),
-          maxDirectoryDepth: calculateMaxDirectoryDepth(contents)
-        }
+      codeQuality,
+      health: {
+        score: healthScore,
+        trustFactors: [
+          timeMetrics.isActive && 'Active Maintenance',
+          codeQuality.hasReadme && 'Documentation',
+          contributorStats.numberOfContributors > 2 && 'Active Community'
+        ].filter(Boolean)
       }
     };
   } catch (error) {
