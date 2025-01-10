@@ -3,22 +3,69 @@ import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import MetricCard from '../MetricCard';
 import AnalysisSection from '../AnalysisSection';
-import  {TRUST_FACTORS}  from '../../constants';
+import { TRUST_FACTORS } from '../../constants';
 
 const OverviewTab = ({ data }) => {
   if (!data) return null;
 
   const { timeMetrics, metrics, health, commitAnalysis } = data;
 
+  const getHealthScoreColor = (score) => {
+    if (score >= 80) {
+      return {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        accent: 'text-green-600',
+        border: 'border-green-200'
+      };
+    }
+    if (score >= 60) {
+      return {
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-800',
+        accent: 'text-yellow-600',
+        border: 'border-yellow-200'
+      };
+    }
+    if (score >= 40) {
+      return {
+        bg: 'bg-orange-100',
+        text: 'text-orange-800',
+        accent: 'text-orange-600',
+        border: 'border-orange-200'
+      };
+    }
+    return {
+      bg: 'bg-red-100',
+      text: 'text-red-800',
+      accent: 'text-red-600',
+      border: 'border-red-200'
+    };
+  };
+
+  const scoreColors = getHealthScoreColor(health.score);
+
   return (
     <div className="space-y-6">
       {/* Main Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard
-          title="Health Score"
-          value={`${health.score}/100`}
-          description="Overall repository health based on multiple factors"
-        />
+        <div className={`rounded-lg border ${scoreColors.border} p-6`}>
+          <div className="flex flex-col space-y-1.5">
+            <h3 className="font-medium text-sm text-gray-600">Health Score</h3>
+            <div className={`text-2xl font-bold ${scoreColors.text}`}>
+              {health.score}/100
+            </div>
+            <div className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${scoreColors.bg} ${scoreColors.text}`}>
+              {health.score >= 80 ? 'Excellent' :
+               health.score >= 60 ? 'Good' :
+               health.score >= 40 ? 'Fair' :
+               'Poor'}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              Overall repository health based on multiple factors
+            </p>
+          </div>
+        </div>
         <MetricCard
           title="Activity Level"
           value={commitAnalysis.isConsistent ? 'Active' : 'Irregular'}
@@ -49,7 +96,7 @@ const OverviewTab = ({ data }) => {
         </div>
       </AnalysisSection>
 
-      {/* Activity Metrics */}
+      {/* Rest of the component remains the same */}
       <AnalysisSection title="Activity Metrics">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <MetricCard
