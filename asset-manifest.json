@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/LarpDetector/static/css/main.c742c9ae.css",
-    "main.js": "/LarpDetector/static/js/main.0bbfac79.js",
-    "static/js/488.856d10ca.chunk.js": "/LarpDetector/static/js/488.856d10ca.chunk.js",
+    "main.css": "/LarpDetector/static/css/main.122b8072.css",
+    "main.js": "/LarpDetector/static/js/main.18365171.js",
+    "static/js/488.627c9092.chunk.js": "/LarpDetector/static/js/488.627c9092.chunk.js",
     "index.html": "/LarpDetector/index.html",
-    "main.c742c9ae.css.map": "/LarpDetector/static/css/main.c742c9ae.css.map",
-    "main.0bbfac79.js.map": "/LarpDetector/static/js/main.0bbfac79.js.map",
-    "488.856d10ca.chunk.js.map": "/LarpDetector/static/js/488.856d10ca.chunk.js.map"
+    "main.122b8072.css.map": "/LarpDetector/static/css/main.122b8072.css.map",
+    "main.18365171.js.map": "/LarpDetector/static/js/main.18365171.js.map",
+    "488.627c9092.chunk.js.map": "/LarpDetector/static/js/488.627c9092.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.c742c9ae.css",
-    "static/js/main.0bbfac79.js"
+    "static/css/main.122b8072.css",
+    "static/js/main.18365171.js"
   ]
 }
