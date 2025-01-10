@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/LarpDetector/static/css/main.2524954e.css",
+    "main.css": "/LarpDetector/static/css/main.7fd3927a.css",
     "main.js": "/LarpDetector/static/js/main.b2b62bf6.js",
     "static/js/488.856d10ca.chunk.js": "/LarpDetector/static/js/488.856d10ca.chunk.js",
     "index.html": "/LarpDetector/index.html",
-    "main.2524954e.css.map": "/LarpDetector/static/css/main.2524954e.css.map",
+    "main.7fd3927a.css.map": "/LarpDetector/static/css/main.7fd3927a.css.map",
     "main.b2b62bf6.js.map": "/LarpDetector/static/js/main.b2b62bf6.js.map",
     "488.856d10ca.chunk.js.map": "/LarpDetector/static/js/488.856d10ca.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.2524954e.css",
+    "static/css/main.7fd3927a.css",
     "static/js/main.b2b62bf6.js"
   ]
 }
