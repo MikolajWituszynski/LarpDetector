@@ -1,6 +1,6 @@
 {
   "name": "github-analyzer",
-  "homepage": "https://mikolajwituszynski.github.io/LarpDetector/",
+  "homepage": "https://mikolajwituszynski.github.io/",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -10,10 +10,10 @@
     "deploy": "gh-pages -d build"
   },
   "rules": {
-  "no-unused-vars": "off",
-  "jsx-a11y/heading-has-content": "off",
-  "no-useless-escape": "off"
-},
+    "no-unused-vars": "off",
+    "jsx-a11y/heading-has-content": "off",
+    "no-useless-escape": "off"
+  },
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -22,14 +22,19 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@vitejs/plugin-react": "^4.3.4",
+    "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cors": "^2.8.5",
     "cra-template": "1.2.0",
     "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "lucide-react": "^0.469.0",
+    "node-fetch": "^3.3.2",
     "path": "^0.12.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
     "react-scripts": "5.0.1",
     "recharts": "^2.15.0",
     "sonner": "^1.7.1",
