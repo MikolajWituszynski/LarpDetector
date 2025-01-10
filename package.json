@@ -1,6 +1,6 @@
 {
   "name": "github-analyzer",
-  "homepage": "https://mikolajwituszynski.github.io/",
+  "homepage": "https://mikolajwituszynski.github.io/LarpDetector/",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
