@@ -9,7 +9,6 @@ import UnifiedAnalyzer from './UnifiedAnalyzer';
 function App() {
   return (
     <Router>
-    <Router>
       <div className="min-h-screen bg-gray-50">
         <main className="container mx-auto py-8">
           <Routes>
@@ -20,7 +19,6 @@ function App() {
         </main>
         <Toaster />
       </div>
-    </Router>
     </Router>
   );
 }
