@@ -20,11 +20,7 @@ import {
       label: 'Code Quality',
       icon: Code,
     },
-    {
-      id: 'dependencies',
-      label: 'Dependencies',
-      icon: Package,
-    },
+   
     {
       id: 'activity',
       label: 'Activity',
