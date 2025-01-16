@@ -7,8 +7,7 @@ const fetchGitHubAPI = async (endpoint, token = null) => {
   try {
     const headers = {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'GitHub-Health-Check',
-      'Authorization': 'Bearer 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'
+      'User-Agent': 'GitHub-Health-Check'
     };
 
 
