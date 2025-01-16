@@ -1,255 +1,341 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Server, Download, AlertTriangle, CheckCircle, Terminal, Info } from 'lucide-react';
+import React from 'react';
+import { Package, AlertCircle, Check, XCircle, Globe, Cloud, Server, Terminal, Box, Database } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
-import MetricCard from '../MetricCard';
 import AnalysisSection from '../AnalysisSection';
-import Progress from "../ui/Progress";
-import { Button } from "../ui/button";
+import MetricCard from '../MetricCard';
 
 const DependenciesTab = ({ data }) => {
   if (!data) return null;
 
-  const { dependencies = {} } = data;
+  // Get package.json data
+  const packageJson = data.dependencies?.packageJson || {};
+  const dependencies = packageJson.dependencies || {};
+  const devDependencies = packageJson.devDependencies || {};
+  const scripts = packageJson.scripts || {};
+  
+  // Analyze deployment configurations
+  const deploymentCapabilities = {
+    // Container deployment
+    docker: {
+      possible: true, // React apps can always be containerized
+      hasConfig: data.files?.some(f => 
+        f.name.toLowerCase() === 'dockerfile' || 
+        f.name.toLowerCase() === 'docker-compose.yml'
+      ),
+      readiness: 'Ready for containerization',
+      requirements: [
+        { name: 'Build script', met: !!scripts.build },
+        { name: 'Start script', met: !!scripts.start },
+        { name: 'Docker config', met: data.files?.some(f => f.name.toLowerCase() === 'dockerfile') }
+      ]
+    },
 
-  // Analyze package.json for local deployment requirements
-  const [localDeployment, setLocalDeployment] = useState({
-    canRunLocally: false,
-    hasStartScript: false,
-    hasBuildScript: false,
-    hasRequiredDeps: false,
-    missingDeps: [],
-    nodeVersionSpecified: false,
-    recommendedNodeVersion: null,
-    setupSteps: []
-  });
+    // Static deployment
+    static: {
+      possible: true, // React apps can be deployed statically
+      hasConfig: !!scripts.build,
+      readiness: !!scripts.build ? 'Ready' : 'Needs build configuration',
+      requirements: [
+        { name: 'Build script', met: !!scripts.build },
+        { name: 'Static output', met: true }, // React builds are static by default
+        { name: 'Asset optimization', met: !!devDependencies.postcss }
+      ]
+    },
 
-  useEffect(() => {
-    // Check package.json for deployment requirements
-    const checkLocalDeployment = async () => {
-      try {
-        const packageJson = await window.fs.readFile('package.json', { encoding: 'utf8' });
-        const pkgData = JSON.parse(packageJson);
-        
-        const hasStart = !!pkgData.scripts?.start;
-        const hasBuild = !!pkgData.scripts?.build;
-        const requiredDeps = ['react', 'react-dom'];
-        const missingDeps = requiredDeps.filter(dep => !pkgData.dependencies?.[dep]);
-        
-        const steps = [];
-        if (hasBuild) steps.push('npm install');
-        if (hasBuild) steps.push('npm run build');
-        if (hasStart) steps.push('npm start');
+    // Serverless deployment
+    serverless: {
+      possible: true,
+      hasConfig: dependencies['@vercel/analytics'] || 
+                 data.files?.some(f => f.name.includes('netlify') || f.name.includes('vercel')),
+      readiness: 'Compatible with serverless platforms',
+      requirements: [
+        { name: 'Build process', met: !!scripts.build },
+        { name: 'Environment variables', met: !!dependencies.dotenv },
+        { name: 'API endpoints', met: !!scripts.api }
+      ]
+    },
 
-        setLocalDeployment({
-          canRunLocally: hasStart && !missingDeps.length,
-          hasStartScript: hasStart,
-          hasBuildScript: hasBuild,
-          hasRequiredDeps: !missingDeps.length,
-          missingDeps,
-          nodeVersionSpecified: !!pkgData.engines?.node,
-          recommendedNodeVersion: pkgData.engines?.node || '>=14.0.0',
-          setupSteps: steps
-        });
-      } catch (error) {
-        console.error('Error analyzing package.json:', error);
-      }
-    };
+    // Kubernetes deployment
+    kubernetes: {
+      possible: true,
+      hasConfig: data.files?.some(f => 
+        f.name.includes('k8s') || 
+        f.name.includes('kubernetes') ||
+        f.name.includes('.yaml')
+      ),
+      readiness: 'Can be orchestrated with Kubernetes',
+      requirements: [
+        { name: 'Container support', met: true },
+        { name: 'Health checks', met: !!scripts.test },
+        { name: 'K8s manifests', met: data.files?.some(f => f.name.includes('k8s')) }
+      ]
+    },
 
-    checkLocalDeployment();
-  }, []);
+    // Cloud platform specific
+    cloud: {
+      possible: true,
+      hasConfig: data.files?.some(f => 
+        f.name.includes('aws') || 
+        f.name.includes('azure') ||
+        f.name.includes('gcp')
+      ),
+      readiness: 'Cloud-platform compatible',
+      requirements: [
+        { name: 'Build artifacts', met: !!scripts.build },
+        { name: 'Environment config', met: !!dependencies.dotenv },
+        { name: 'Cloud configs', met: data.files?.some(f => f.name.includes('aws')) }
+      ]
+    }
+  };
+
+  // Check for deployment prerequisites
+  const prerequisites = {
+    hasNodeEngine: !!packageJson.engines?.node,
+    hasLockFile: data.files?.some(f => 
+      f.name === 'package-lock.json' || 
+      f.name === 'yarn.lock' ||
+      f.name === 'pnpm-lock.yaml'
+    ),
+    hasEnvExample: data.files?.some(f => f.name.includes('.env')),
+    hasBuildScript: !!scripts.build,
+    hasTestScript: !!scripts.test,
+    hasStartScript: !!scripts.start
+  };
+
+  // Calculate deployment readiness score
+  const calculateReadinessScore = () => {
+    let score = 0;
+    if (prerequisites.hasNodeEngine) score += 15;
+    if (prerequisites.hasLockFile) score += 15;
+    if (prerequisites.hasEnvExample) score += 10;
+    if (prerequisites.hasBuildScript) score += 20;
+    if (prerequisites.hasTestScript) score += 20;
+    if (prerequisites.hasStartScript) score += 20;
+    return score;
+  };
+
+  const readinessScore = calculateReadinessScore();
+
+  // Identify optimal deployment methods
+  const getRecommendedDeployments = () => {
+    const recommendations = [];
+    
+    if (deploymentCapabilities.static.possible && deploymentCapabilities.static.hasConfig) {
+      recommendations.push({
+        type: 'Static Hosting',
+        platforms: ['Netlify', 'Vercel', 'GitHub Pages', 'AWS S3'],
+        reason: 'Ready for static deployment with optimized build'
+      });
+    }
+
+    if (deploymentCapabilities.docker.possible) {
+      recommendations.push({
+        type: 'Container Platforms',
+        platforms: ['Docker', 'AWS ECS', 'Google Cloud Run', 'Azure Container Apps'],
+        reason: 'Can be containerized for scalable deployment'
+      });
+    }
+
+    if (deploymentCapabilities.serverless.possible) {
+      recommendations.push({
+        type: 'Serverless Platforms',
+        platforms: ['Vercel', 'Netlify', 'AWS Amplify', 'Firebase'],
+        reason: 'Suitable for serverless deployment with automatic scaling'
+      });
+    }
+
+    return recommendations;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Why We Check Dependencies */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-500" />
-        <AlertTitle>Why We Analyze Dependencies</AlertTitle>
-        <AlertDescription className="mt-2 text-blue-700">
-          <p className="mb-2">Analyzing project dependencies helps identify potential security risks, maintenance needs, and deployment requirements. We check for:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Outdated or vulnerable packages that could pose security risks</li>
-            <li>Development and runtime dependencies for local deployment</li>
-            <li>Build and deployment configurations for different environments</li>
-            <li>Node.js version requirements and compatibility</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
+      {/* Deployment Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <MetricCard
+          title="Deployment Readiness"
+          value={`${readinessScore}%`}
+          description="Overall deployment configuration completeness"
+        />
+        <MetricCard
+          title="Deployment Options"
+          value={Object.values(deploymentCapabilities).filter(c => c.possible).length}
+          description="Available deployment methods"
+        />
+        <MetricCard
+          title="Prerequisites Met"
+          value={Object.values(prerequisites).filter(Boolean).length}
+          description="Out of 6 deployment prerequisites"
+        />
+      </div>
 
-      {/* Local Development Setup */}
-      <AnalysisSection
-        title="Local Development"
-        subtitle="Analysis of local deployment requirements and setup instructions"
-      >
-        <div className="space-y-4">
-          {/* Overall Status */}
-          <div className={`p-4 rounded-lg ${
-            localDeployment.canRunLocally ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
-          }`}>
-            <div className="flex items-start gap-3">
-              {localDeployment.canRunLocally ? (
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-              ) : (
-                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              )}
-              <div>
-                <h4 className="font-medium">
-                  {localDeployment.canRunLocally ? 
-                    'Project can be run locally' : 
-                    'Some configuration required for local deployment'}
-                </h4>
-                <p className="text-sm mt-1">
-                  {localDeployment.canRunLocally ?
-                    'All necessary scripts and dependencies are present' :
-                    'Missing required configuration or dependencies'}
-                </p>
+      {/* Container Deployment */}
+      <AnalysisSection title="Container Deployment">
+        <div className={`p-4 rounded-lg ${
+          deploymentCapabilities.docker.hasConfig ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+        } border`}>
+          <div className="flex items-center gap-3">
+            <Box className="h-5 w-5 text-gray-600" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Docker & Containers</h4>
+                <span className={`text-sm ${
+                  deploymentCapabilities.docker.hasConfig ? 'text-green-600' : 'text-gray-500'
+                }`}>
+                  {deploymentCapabilities.docker.readiness}
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Setup Requirements */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Terminal className="h-4 w-4" />
-                Required Scripts
-              </h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Start Script</span>
-                  {localDeployment.hasStartScript ? (
-                    <span className="text-green-600 text-sm">✓ Present</span>
-                  ) : (
-                    <span className="text-red-600 text-sm">✗ Missing</span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Build Script</span>
-                  {localDeployment.hasBuildScript ? (
-                    <span className="text-green-600 text-sm">✓ Present</span>
-                  ) : (
-                    <span className="text-red-600 text-sm">✗ Missing</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Server className="h-4 w-4" />
-                Environment Requirements
-              </h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Node.js Version</span>
-                  <span className="text-sm font-mono">
-                    {localDeployment.recommendedNodeVersion || '>=14.0.0'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Setup Instructions */}
-          {localDeployment.canRunLocally && (
-            <div className="mt-4">
-              <h4 className="font-medium mb-3">Local Setup Instructions</h4>
-              <div className="bg-gray-50 p-4 rounded-lg font-mono text-sm">
-                {localDeployment.setupSteps.map((step, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="text-gray-500">{index + 1}.</span>
-                    <code>{step}</code>
+              <div className="mt-3 space-y-2">
+                {deploymentCapabilities.docker.requirements.map((req, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    {req.met ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-gray-400" />
+                    )}
+                    <span className={req.met ? 'text-green-700' : 'text-gray-600'}>
+                      {req.name}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      </AnalysisSection>
 
-          {/* Missing Dependencies Warning */}
-          {localDeployment.missingDeps.length > 0 && (
-            <Alert variant="warning" className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Missing Required Dependencies</AlertTitle>
-              <AlertDescription>
-                <p className="mt-2">The following core dependencies are missing:</p>
-                <ul className="list-disc pl-5 mt-2">
-                  {localDeployment.missingDeps.map(dep => (
-                    <li key={dep}>{dep}</li>
+      {/* Cloud Platforms */}
+      <AnalysisSection title="Cloud Platform Deployment">
+        <div className="space-y-4">
+          {/* Static/Serverless */}
+          <div className={`p-4 rounded-lg ${
+            deploymentCapabilities.serverless.hasConfig ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+          } border`}>
+            <div className="flex items-center gap-3">
+              <Cloud className="h-5 w-5 text-gray-600" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Serverless Platforms</h4>
+                  <span className={`text-sm ${
+                    deploymentCapabilities.serverless.hasConfig ? 'text-green-600' : 'text-gray-500'
+                  }`}>
+                    {deploymentCapabilities.serverless.readiness}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {deploymentCapabilities.serverless.requirements.map((req, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      {req.met ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-gray-400" />
+                      )}
+                      <span className={req.met ? 'text-green-700' : 'text-gray-600'}>
+                        {req.name}
+                      </span>
+                    </div>
                   ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-      </AnalysisSection>
-
-      {/* Dependencies Overview */}
-      <AnalysisSection title="Dependencies Overview">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Production Dependencies */}
-          <div className="space-y-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Production Dependencies
-            </h4>
-            <div className="space-y-3">
-              {Object.entries(dependencies.production || {}).map(([name, version]) => (
-                <div key={name} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <span className="font-mono text-sm">{name}</span>
-                  <span className="text-sm text-gray-600">{version}</span>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* Development Dependencies */}
-          <div className="space-y-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Development Dependencies
-            </h4>
-            <div className="space-y-3">
-              {Object.entries(dependencies.development || {}).map(([name, version]) => (
-                <div key={name} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <span className="font-mono text-sm">{name}</span>
-                  <span className="text-sm text-gray-600">{version}</span>
+          {/* Kubernetes */}
+          <div className={`p-4 rounded-lg ${
+            deploymentCapabilities.kubernetes.hasConfig ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+          } border`}>
+            <div className="flex items-center gap-3">
+              <Server className="h-5 w-5 text-gray-600" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Kubernetes Orchestration</h4>
+                  <span className={`text-sm ${
+                    deploymentCapabilities.kubernetes.hasConfig ? 'text-green-600' : 'text-gray-500'
+                  }`}>
+                    {deploymentCapabilities.kubernetes.readiness}
+                  </span>
                 </div>
-              ))}
+                <div className="mt-3 space-y-2">
+                  {deploymentCapabilities.kubernetes.requirements.map((req, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      {req.met ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-gray-400" />
+                      )}
+                      <span className={req.met ? 'text-green-700' : 'text-gray-600'}>
+                        {req.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </AnalysisSection>
 
-      {/* Development Tools */}
-      <AnalysisSection 
-        title="Development Tools"
-        subtitle="Analysis of development and build tools configuration"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              name: 'Build System',
-              value: dependencies.buildTool || 'react-scripts',
-              description: 'Tool used for building the project'
-            },
-            {
-              name: 'Test Framework',
-              value: dependencies.testFramework || 'Jest',
-              description: 'Testing framework configuration'
-            },
-            {
-              name: 'Package Manager',
-              value: dependencies.packageManager || 'npm',
-              description: 'Recommended package manager'
-            }
-          ].map((tool) => (
-            <div key={tool.name} className="p-4 border rounded-lg">
-              <h4 className="font-medium">{tool.name}</h4>
-              <p className="text-sm text-gray-600 mt-1">{tool.description}</p>
-              <p className="font-mono text-sm mt-2">{tool.value}</p>
+      {/* Deployment Recommendations */}
+      <AnalysisSection title="Recommended Deployment Options">
+        <div className="space-y-4">
+          {getRecommendedDeployments().map((rec, index) => (
+            <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900">{rec.type}</h4>
+              <p className="text-sm text-blue-700 mt-1">{rec.reason}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {rec.platforms.map((platform, i) => (
+                  <span key={i} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                    {platform}
+                  </span>
+                ))}
+              </div>
             </div>
           ))}
         </div>
       </AnalysisSection>
+
+      {/* Prerequisites */}
+      <AnalysisSection title="Deployment Prerequisites">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Object.entries(prerequisites).map(([key, met]) => (
+            <div key={key} className={`p-3 rounded-lg ${
+              met ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+            } border`}>
+              <div className="flex items-center gap-2">
+                {met ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-gray-400" />
+                )}
+                <span className={met ? 'text-green-900' : 'text-gray-600'}>
+                  {key.replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, str => str.toUpperCase())
+                    .replace('Has ', '')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </AnalysisSection>
+
+      {/* Missing Prerequisites Warning */}
+      {Object.values(prerequisites).some(v => !v) && (
+        <Alert variant="warning">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle>Missing Prerequisites</AlertTitle>
+          <AlertDescription>
+            Some deployment prerequisites are missing. Consider adding:
+            <ul className="list-disc list-inside mt-2">
+              {Object.entries(prerequisites).map(([key, met]) => !met && (
+                <li key={key}>
+                  {key.replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, str => str.toUpperCase())
+                    .replace('Has ', '')}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };

@@ -34,177 +34,120 @@ export const TABS = [
     id: 'overview',
     label: 'Overview',
     icon: Activity,
-  }
+  },
+  {
+    id: 'dependencies',
+    label: 'Dependencies',
+    icon: Package,
+  },
 ];
 
 export const TRUST_FACTORS = {
-  'Active Maintenance': 'Regular updates within the last 30 days',
-  'Documentation': 'Comprehensive documentation available',
-  'Testing': 'Has automated tests and CI integration',
-  'Security Measures': 'Security policy and automated checks',
-  'Community Guidelines': 'Clear contribution and community guidelines',
-  'Stable Release': 'Regular release cycle maintained'
+  'Established Project': 'Repository has been active for a significant period',
+  'Trusted Contributors': 'Multiple contributors with established GitHub history',
+  'Consistent Development': 'Regular and natural development patterns',
+  'Quality Standards': 'Professional development practices and documentation',
+  'Active Community': 'Engaged community with organic growth patterns'
+};
+
+export const RISK_FACTORS = {
+  'New Repository': 'Project was created recently',
+  'Limited Contributor History': 'Contributors have limited or no track record',
+  'Irregular Activity': 'Unusual or inconsistent development patterns',
+  'Basic Code Standards': 'Missing key professional development practices',
+  'Low Community Engagement': 'Limited community interaction and growth'
+};
+
+export const getHealthScoreColor = (score) => {
+  if (score >= 80) return 'bg-indigo-100 text-indigo-800';
+  if (score >= 60) return 'bg-green-100 text-green-800';
+  if (score >= 40) return 'bg-yellow-100 text-yellow-800';
+  if (score >= 20) return 'bg-orange-100 text-orange-800';
+  return 'bg-red-100 text-red-800';
+};
+
+export const getHealthScoreBadge = (score) => {
+  if (score >= 80) return {
+    color: 'bg-indigo-100 text-indigo-800',
+    label: 'Very Low Risk',
+    description: `${score}/100 - Strong trust indicators`
+  };
+  if (score >= 60) return {
+    color: 'bg-green-100 text-green-800',
+    label: 'Low Risk',
+    description: `${score}/100 - Good trust indicators`
+  };
+  if (score >= 40) return {
+    color: 'bg-yellow-100 text-yellow-800',
+    label: 'Moderate Risk',
+    description: `${score}/100 - Some concerns identified`
+  };
+  if (score >= 20) return {
+    color: 'bg-orange-100 text-orange-800',
+    label: 'High Risk',
+    description: `${score}/100 - Multiple risk factors`
+  };
+  return {
+    color: 'bg-red-100 text-red-800',
+    label: 'Critical Risk',
+    description: `${score}/100 - Significant risk indicators`
+  };
 };
 
 export const HEALTH_SCORE_RANGES = {
   exceptional: {
-    range: '90-100',
-    description: 'Professional repository with exceptional practices',
+    range: '80-100',
+    description: 'Very low risk with strong trust indicators',
     indicators: [
-      'Frequent updates and active maintenance',
-      'Extensive documentation and testing',
-      'Large, engaged community',
-      'Strong security measures'
-    ]
-  },
-  excellent: {
-    range: '80-89',
-    description: 'High-quality repository with strong practices',
-    indicators: [
-      'Regular updates and maintenance',
-      'Good documentation and testing',
-      'Active community',
-      'Proper security measures'
+      'Established project history',
+      'Multiple trusted contributors',
+      'Consistent development patterns',
+      'Professional code quality',
+      'Active, organic community'
     ]
   },
   good: {
-    range: '70-79',
-    description: 'Solid repository with good practices',
+    range: '60-79',
+    description: 'Low risk with positive trust indicators',
     indicators: [
-      'Consistent updates',
-      'Basic documentation',
-      'Growing community',
-      'Basic security measures'
+      'Moderate project history',
+      'Some trusted contributors',
+      'Regular development activity',
+      'Good code standards',
+      'Growing community'
     ]
   },
-  fair: {
-    range: '50-69',
-    description: 'Basic repository with some areas for improvement',
+  moderate: {
+    range: '40-59',
+    description: 'Moderate risk with mixed indicators',
     indicators: [
-      'Semi-regular updates',
-      'Some documentation',
-      'Small community',
-      'Basic security'
+      'Limited project history',
+      'Few verified contributors',
+      'Some development activity',
+      'Basic code standards',
+      'Small community'
     ]
   },
-  needs_improvement: {
-    range: 'Below 50',
-    description: 'Areas needing significant improvement',
+  concerning: {
+    range: '20-39',
+    description: 'High risk with multiple concerns',
     indicators: [
-      'Infrequent updates',
-      'Limited documentation',
-      'Small or inactive community',
-      'Limited security measures'
+      'Very new project',
+      'Unverified contributors',
+      'Irregular activity',
+      'Minimal standards',
+      'Limited engagement'
+    ]
+  },
+  critical: {
+    range: '0-19',
+    description: 'Critical risk level',
+    indicators: [
+      'Brand new project',
+      'Unknown contributors',
+      'Suspicious activity',
+      'Poor standards',
+      'No community'
     ]
   }
-};
-
-export const calculateActivityScore = (repoData) => {
-  let score = 60; // Base score
-
-  // Recent activity scoring (max 20 points)
-  if (repoData.timeMetrics && repoData.timeMetrics.isActive) {
-    score += 20;
-  } else if (repoData.timeMetrics && repoData.timeMetrics.lastUpdated < 90) {
-    score += 15;
-  }
-
-  // Commit patterns (max 20 points)
-  if (repoData.commitAnalysis) {
-    if (repoData.commitAnalysis.isConsistent) score += 10;
-    if (repoData.commitAnalysis.frequency > 0) score += 10;
-  }
-
-  return Math.min(100, score);
-};
-
-export const calculateQualityScore = (repoData) => {
-  let score = 60; // Base score
-  
-  if (!repoData.codeQuality) return score;
-
-  // Documentation (max 20 points)
-  if (repoData.codeQuality.hasReadme) score += 5;
-  if (repoData.codeQuality.hasContributing) score += 5;
-  if (repoData.codeQuality.hasLicense) score += 5;
-  if (repoData.codeQuality.hasChangelog) score += 5;
-
-  // Code quality tools (max 20 points)
-  if (repoData.codeQuality.codeStyle) {
-    if (repoData.codeQuality.codeStyle.hasLinter) score += 5;
-    if (repoData.codeQuality.codeStyle.hasTypeChecking) score += 5;
-    if (repoData.codeQuality.codeStyle.hasEditorConfig) score += 5;
-    if (repoData.codeQuality.codeStyle.hasFormatting) score += 5;
-  }
-
-  return Math.min(100, score);
-};
-
-export const calculateCommunityScore = (repoData) => {
-  let score = 60; // Base score
-
-  // Stars scoring (max 20 points)
-  const stars = repoData.repoData?.stargazers_count || 0;
-  if (stars >= 1000) score += 20;
-  else if (stars >= 500) score += 15;
-  else if (stars >= 100) score += 10;
-  else if (stars > 0) score += 5;
-
-  // Contributors scoring (max 20 points)
-  const contributorCount = repoData.contributors?.numberOfContributors || 0;
-  if (contributorCount >= 10) score += 20;
-  else if (contributorCount >= 5) score += 15;
-  else if (contributorCount >= 2) score += 10;
-  else if (contributorCount > 0) score += 5;
-
-  return Math.min(100, score);
-};
-
-export const getProjectHealthScore = (repoData) => {
-  const activityScore = calculateActivityScore(repoData);
-  const qualityScore = calculateQualityScore(repoData);
-  const communityScore = calculateCommunityScore(repoData);
-  
-  // Weighted average with higher weight on activity and quality
-  return Math.round(
-    (activityScore * 0.4) +
-    (qualityScore * 0.4) +
-    (communityScore * 0.2)
-  );
-};
-
-export const getHealthScoreColor = (score) => {
-  if (score >= 90) return 'bg-indigo-100 text-indigo-800';
-  if (score >= 80) return 'bg-green-100 text-green-800';
-  if (score >= 70) return 'bg-emerald-100 text-emerald-800';
-  if (score >= 50) return 'bg-yellow-100 text-yellow-800';
-  return 'bg-red-100 text-red-800';
-};
-
-export const getHealthScoreDisplay = (score) => {
-  if (score >= 90) return {
-    color: 'bg-indigo-100 text-indigo-800',
-    label: 'Exceptional',
-    description: `${score}/100 - Professional grade repository`
-  };
-  if (score >= 80) return {
-    color: 'bg-green-100 text-green-800',
-    label: 'Excellent',
-    description: `${score}/100 - High quality repository`
-  };
-  if (score >= 70) return {
-    color: 'bg-emerald-100 text-emerald-800',
-    label: 'Good',
-    description: `${score}/100 - Solid repository`
-  };
-  if (score >= 50) return {
-    color: 'bg-yellow-100 text-yellow-800',
-    label: 'Fair',
-    description: `${score}/100 - Developing repository`
-  };
-  return {
-    color: 'bg-red-100 text-red-800',
-    label: 'Concerning',
-    description: `${score}/100 - Multiple concerns identified`
-  };
 };

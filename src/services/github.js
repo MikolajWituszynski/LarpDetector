@@ -1,27 +1,18 @@
 // github.js
-import {
-  calculateTimeMetrics,
-  analyzeOwner,
-  analyzeProjectHealth,
-  analyzeCommitPatterns,
-  analyzeContributors,
-  analyzeBranches,
-  analyzeSecurityFeatures,
-  calculateMetrics
-} from '../analysis';
+import { calculateTrustScore } from './trustScore';
 
 const BASE_URL = 'https://api.github.com';
 
-const fetchGitHubAPI = async (endpoint) => {
+const fetchGitHubAPI = async (endpoint, token = null) => {
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'GitHub-Health-Check'      
+    const headers = {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'GitHub-Health-Check',
+      'Authorization': 'Bearer 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'
+    };
 
-      }
-    });
 
+    const response = await fetch(`${BASE_URL}${endpoint}`, { headers });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -34,7 +25,6 @@ const fetchGitHubAPI = async (endpoint) => {
     throw error;
   }
 };
-
 
 const calculateAverageFileSize = (files) => {
   const sizes = files
@@ -62,9 +52,28 @@ const calculateMaxDirectoryDepth = (files) => {
   }, 0);
 };
 
-export { calculateAverageFileSize, findLargestFile, calculateMaxDirectoryDepth };
+const getContributorProfiles = async (contributors) => {
+  try {
+    const profiles = await Promise.all(
+      contributors.map(async (contributor) => {
+        const profile = await fetchGitHubAPI(`/users/${contributor.login}`);
+        return {
+          login: contributor.login,
+          accountAge: (new Date() - new Date(profile.created_at)) / (1000 * 60 * 60 * 24),
+          publicRepos: profile.public_repos,
+          followers: profile.followers,
+          contributions: contributor.contributions
+        };
+      })
+    );
+    return profiles;
+  } catch (error) {
+    console.warn('Failed to fetch contributor profiles:', error);
+    return [];
+  }
+};
 
-export const analyzeGitHubRepo = async (url) => {
+export const analyzeGitHubRepo = async (url, token = null) => {
   const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)(\/.*)?$/);
   if (!match) {
     throw new Error('Invalid GitHub repository URL');
@@ -74,7 +83,7 @@ export const analyzeGitHubRepo = async (url) => {
   
   try {
     // Fetch basic repository data first
-    const repoData = await fetchGitHubAPI(`/repos/${owner}/${repo}`);
+    const repoData = await fetchGitHubAPI(`/repos/${owner}/${repo}`, token);
     
     // Fetch all additional data in parallel
     const [
@@ -88,15 +97,15 @@ export const analyzeGitHubRepo = async (url) => {
       branches,
       workflows
     ] = await Promise.all([
-      fetchGitHubAPI(`/repos/${owner}/${repo}/commits`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/contributors`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/issues?state=all`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/pulls?state=all`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/contents`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/readme`).catch(() => null),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/languages`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/branches`),
-      fetchGitHubAPI(`/repos/${owner}/${repo}/actions/workflows`).catch(() => ({ workflows: [] })),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/commits`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/contributors`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/issues?state=all`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/pulls?state=all`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/contents`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/readme`, token).catch(() => null),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/languages`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/branches`, token),
+      fetchGitHubAPI(`/repos/${owner}/${repo}/actions/workflows`, token).catch(() => ({ workflows: [] })),
     ]);
 
     // Calculate time metrics
@@ -108,76 +117,92 @@ export const analyzeGitHubRepo = async (url) => {
     const timeMetrics = {
       age: Math.floor((now - createdAt) / (1000 * 60 * 60 * 24)),
       lastUpdated: Math.floor((now - lastCommitDate) / (1000 * 60 * 60 * 24)),
-      isActive: (now - lastCommitDate) / (1000 * 60 * 60 * 24) < 90 // Consider active if updated within 90 days
+      isActive: (now - lastCommitDate) / (1000 * 60 * 60 * 24) < 90
     };
 
-    // Calculate commit analysis
+    // Analyze commit patterns
     const commitAnalysis = {
       frequency: commits.length,
       isConsistent: commits.length > 0,
-      authors: new Set(commits.map(c => c.commit.author.email)).size
-    };
-
-    // Analyze code quality
-    const codeQuality = {
-      hasReadme: contents.some(f => f.name.toLowerCase() === 'readme.md'),
-      hasContributing: contents.some(f => f.name.toLowerCase() === 'contributing.md'),
-      hasLicense: contents.some(f => f.name.toLowerCase() === 'license'),
-      hasChangelog: contents.some(f => f.name.toLowerCase() === 'changelog.md'),
-      codeStyle: {
-        hasLinter: contents.some(f => f.name.match(/\.(eslint|prettier|stylelint)rc/)),
-        hasTypeChecking: contents.some(f => f.name === 'tsconfig.json'),
-        hasEditorConfig: contents.some(f => f.name === '.editorconfig'),
-        hasFormatting: contents.some(f => f.name.match(/\.(prettier|clang-format)/))
+      authors: new Set(commits.map(c => c.commit.author.email)).size,
+      activityPatterns: {
+        weekdayActivity: commits.filter(c => {
+          const date = new Date(c.commit.author.date);
+          return date.getDay() !== 0 && date.getDay() !== 6;
+        }).length,
+        weekendActivity: commits.filter(c => {
+          const date = new Date(c.commit.author.date);
+          return date.getDay() === 0 || date.getDay() === 6;
+        }).length,
+        timeDistribution: commits.reduce((dist, c) => {
+          const hour = new Date(c.commit.author.date).getHours();
+          dist[hour] = (dist[hour] || 0) + 1;
+          return dist;
+        }, {})
       }
     };
 
-    // Process contributors
-    const contributorStats = {
-      numberOfContributors: contributors.length,
-      totalContributions: contributors.reduce((sum, c) => sum + c.contributions, 0),
-      contributionDistribution: contributors.map(c => ({
-        login: c.login,
-        percentage: (c.contributions / contributors.reduce((sum, cont) => sum + cont.contributions, 0)) * 100
-      }))
-    };
+    // Get contributor profiles
+    const contributorProfiles = await getContributorProfiles(contributors);
 
-    // Calculate base health score
-    let healthScore = 60; // Start with base score
-
-    // Activity score (max 15)
-    if (timeMetrics.isActive) healthScore += 15;
-
-    // Community score (max 15)
-    if (repoData.stargazers_count > 1000) healthScore += 15;
-    else if (repoData.stargazers_count > 100) healthScore += 10;
-    else if (repoData.stargazers_count > 10) healthScore += 5;
-
-    // Code quality score (max 10)
-    if (codeQuality.hasReadme) healthScore += 3;
-    if (codeQuality.hasContributing) healthScore += 2;
-    if (codeQuality.hasLicense) healthScore += 2;
-    if (codeQuality.codeStyle.hasLinter || codeQuality.codeStyle.hasTypeChecking) healthScore += 3;
-
-    return {
+    // Process repository data
+    const processedData = {
       repoData: {
         ...repoData,
         description: repoData.description || 'No description provided'
       },
       timeMetrics,
       commitAnalysis,
-      contributors: contributorStats,
+      contributors: {
+        numberOfContributors: contributors.length,
+        totalContributions: contributors.reduce((sum, c) => sum + c.contributions, 0),
+        contributionDistribution: contributors.map(c => ({
+          login: c.login,
+          percentage: (c.contributions / contributors.reduce((sum, cont) => sum + cont.contributions, 0)) * 100
+        }))
+      },
+      contributorProfiles,
       languages,
-      codeQuality,
-      health: {
-        score: healthScore,
-        trustFactors: [
-          timeMetrics.isActive && 'Active Maintenance',
-          codeQuality.hasReadme && 'Documentation',
-          contributorStats.numberOfContributors > 2 && 'Active Community'
-        ].filter(Boolean)
+      codeQuality: {
+        hasReadme: contents.some(f => f.name.toLowerCase() === 'readme.md'),
+        hasContributing: contents.some(f => f.name.toLowerCase() === 'contributing.md'),
+        hasLicense: contents.some(f => f.name.toLowerCase() === 'license'),
+        hasChangelog: contents.some(f => f.name.toLowerCase() === 'changelog.md'),
+        hasGitIgnore: contents.some(f => f.name === '.gitignore'),
+        hasGitAttributes: contents.some(f => f.name === '.gitattributes'),
+        hasPackageLock: contents.some(f => f.name === 'package-lock.json'),
+        codeStyle: {
+          hasLinter: contents.some(f => f.name.match(/\.(eslint|prettier|stylelint)rc/)),
+          hasTypeChecking: contents.some(f => f.name === 'tsconfig.json'),
+          hasEditorConfig: contents.some(f => f.name === '.editorconfig'),
+          hasFormatting: contents.some(f => f.name.match(/\.(prettier|clang-format)/))
+        },
+        complexity: {
+          averageFileSize: calculateAverageFileSize(contents),
+          largestFile: findLargestFile(contents),
+          maxDirectoryDepth: calculateMaxDirectoryDepth(contents)
+        }
+      },
+      metrics: {
+        issueResolutionRate: issues.length ? 
+          issues.filter(i => i.state === 'closed').length / issues.length : 0,
+        pullRequestRate: pulls.length ?
+          pulls.filter(p => p.merged_at).length / pulls.length : 0,
+        activeUsers: new Set([
+          ...issues.map(i => i.user.login),
+          ...pulls.map(p => p.user.login)
+        ]).size
       }
     };
+
+    // Calculate trust score
+    const trustScore = calculateTrustScore(processedData);
+
+    return {
+      ...processedData,
+      health: trustScore
+    };
+
   } catch (error) {
     console.error('Repository analysis failed:', error);
     if (error.message.includes('Not Found')) {

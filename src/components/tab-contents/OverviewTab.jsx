@@ -47,8 +47,13 @@ const OverviewTab = ({ data }) => {
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-blue-600" />
             <div>
-              <p className="text-sm text-gray-600">Repository Age</p>
-              <p className="font-medium">{Math.round(timeMetrics.age / 30)} months</p>
+            <p className="text-sm text-gray-600">Repository Age</p>
+              <p className="font-medium">
+                {timeMetrics.age < 30 
+                  ? `${Math.round(timeMetrics.age)} days`
+                  : `${Math.round(timeMetrics.age / 30)} months`
+                }
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -151,7 +156,22 @@ const OverviewTab = ({ data }) => {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium">{contributor.login}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{contributor.login}</span>
+                      <a
+                        href={`https://github.com/${contributor.login}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                        <span className="sr-only">Visit {contributor.login}'s GitHub profile</span>
+                      </a>
+                    </div>
                   </div>
                   <span className="text-sm text-gray-600">
                     {contributor.percentage.toFixed(1)}%
