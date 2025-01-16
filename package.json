@@ -1,6 +1,7 @@
 {
   "name": "github-analyzer",
-  "homepage": "https://mikolajwituszynski.github.io/LarpDetector/",
+  "homepage": "https://mikolajwituszynski.github.io/homepage",
+  "proxy": "https://toto.oz.xyz",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -17,6 +18,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-toast": "^1.1.5",
