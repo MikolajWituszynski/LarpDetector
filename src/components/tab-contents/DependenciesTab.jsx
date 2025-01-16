@@ -1,282 +1,189 @@
-import React from 'react';
-import { Package, AlertCircle, Clock, Shield, Cloud, Server, Box, Terminal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Package, Server, Download, AlertTriangle, CheckCircle, Terminal, Info } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import MetricCard from '../MetricCard';
 import AnalysisSection from '../AnalysisSection';
-import { Progress } from "../ui/Progress";
-import { useState,useEffect } from 'react';
+import Progress from "../ui/Progress";
+import { Button } from "../ui/button";
+
 const DependenciesTab = ({ data }) => {
   if (!data) return null;
 
   const { dependencies = {} } = data;
 
-  const [deploymentFiles, setDeploymentFiles] = useState({
-    hasDockerfile: false,
-    hasDockerCompose: false,
-    hasKubernetes: false,
-    hasTerraform: false,
-    hasEnvConfig: false,
-       // Vercel detection
-    isVercelCompatible: false,
-    hasVercelDependencies: false,
-    isNextJsProject: false,
-    hasDeploymentScript: false,
-    // Project structure indicators
+  // Analyze package.json for local deployment requirements
+  const [localDeployment, setLocalDeployment] = useState({
+    canRunLocally: false,
+    hasStartScript: false,
     hasBuildScript: false,
-    hasStaticExports: false,
-    hasPublicDir: false
-    
+    hasRequiredDeps: false,
+    missingDeps: [],
+    nodeVersionSpecified: false,
+    recommendedNodeVersion: null,
+    setupSteps: []
   });
 
-  // Get base content URL
-  const baseContentUrl = data.repoData.contents_url.replace('{+path}', '');
-
   useEffect(() => {
-    const fetchRepoContents = async () => {
+    // Check package.json for deployment requirements
+    const checkLocalDeployment = async () => {
       try {
-        const response = await fetch(baseContentUrl);
-        const contents = await response.json();
+        const packageJson = await window.fs.readFile('package.json', { encoding: 'utf8' });
+        const pkgData = JSON.parse(packageJson);
         
-        // Log contents for debugging
-        console.log('Repository contents:', contents);
+        const hasStart = !!pkgData.scripts?.start;
+        const hasBuild = !!pkgData.scripts?.build;
+        const requiredDeps = ['react', 'react-dom'];
+        const missingDeps = requiredDeps.filter(dep => !pkgData.dependencies?.[dep]);
+        
+        const steps = [];
+        if (hasBuild) steps.push('npm install');
+        if (hasBuild) steps.push('npm run build');
+        if (hasStart) steps.push('npm start');
 
-        // Check for deployment files
-        const files = Array.isArray(contents) ? contents : [];
-        const fileNames = files.map(f => f.name.toLowerCase());
-
-        setDeploymentFiles({
-          hasDockerfile: fileNames.includes('dockerfile'),
-          hasDockerCompose: fileNames.includes('docker-compose.yml') || fileNames.includes('docker-compose.yaml'),
-          hasKubernetes: fileNames.some(name => name.includes('k8s') || name.includes('kubernetes')),
-          hasTerraform: fileNames.some(name => name.endsWith('.tf')),
-          hasEnvConfig: fileNames.some(name => name.includes('.env')),
-          // Vercel configuration checks
-          hasVercelConfig: fileNames.some(name => name === 'vercel.json' || name === '.vercel'),
-          hasNextConfig: fileNames.includes('next.config.js') || fileNames.includes('next.config.ts'),
-          hasVercelJson: fileNames.includes('vercel.json'),
-          // CI/CD checks
-          hasGithubActions: files.some(f => f.type === 'dir' && f.name === '.github'),
-          hasVercelGithubIntegration: files.some(f => 
-            f.type === 'file' && 
-            (f.name.includes('vercel') || f.name.includes('now')) && 
-            f.name.endsWith('.yml')
-          )
+        setLocalDeployment({
+          canRunLocally: hasStart && !missingDeps.length,
+          hasStartScript: hasStart,
+          hasBuildScript: hasBuild,
+          hasRequiredDeps: !missingDeps.length,
+          missingDeps,
+          nodeVersionSpecified: !!pkgData.engines?.node,
+          recommendedNodeVersion: pkgData.engines?.node || '>=14.0.0',
+          setupSteps: steps
         });
       } catch (error) {
-        console.error('Error fetching repo contents:', error);
+        console.error('Error analyzing package.json:', error);
       }
     };
 
-    fetchRepoContents();
-  }, [baseContentUrl]);
-
-  // Calculate dependency metrics
-  const outdatedCount = dependencies.outdated?.length || 0;
-  const totalDeps = Object.keys(dependencies.all || {}).length;
-  const updatePercentage = totalDeps ? ((totalDeps - outdatedCount) / totalDeps) * 100 : 100;
-
-  const getDeploymentType = () => {
-    if (deploymentFiles.hasDockerfile) return 'Container-based';
-    if (deploymentFiles.hasKubernetes) return 'Kubernetes';
-    return 'Standard';
-  };
-
+    checkLocalDeployment();
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* Overview Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard
-          title="Total Dependencies"
-          value={totalDeps}
-          description="Number of package dependencies"
-        />
-        <MetricCard
-          title="Up to Date"
-          value={`${Math.round(updatePercentage)}%`}
-          description="Packages on latest version"
-        />
-        <MetricCard
-          title="Deployment Type"
-          value={getDeploymentType()}
-          description="Detected deployment method"
-        />
-      </div>
+      {/* Why We Check Dependencies */}
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-500" />
+        <AlertTitle>Why We Analyze Dependencies</AlertTitle>
+        <AlertDescription className="mt-2 text-blue-700">
+          <p className="mb-2">Analyzing project dependencies helps identify potential security risks, maintenance needs, and deployment requirements. We check for:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Outdated or vulnerable packages that could pose security risks</li>
+            <li>Development and runtime dependencies for local deployment</li>
+            <li>Build and deployment configurations for different environments</li>
+            <li>Node.js version requirements and compatibility</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
 
-      {/* Deployment Configuration */}
+      {/* Local Development Setup */}
       <AnalysisSection
-        title="Deployment Analysis"
-        subtitle="Project deployment capabilities and configurations"
+        title="Local Development"
+        subtitle="Analysis of local deployment requirements and setup instructions"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Containerization */}
-          <div className="p-4 border rounded-lg">
-            <h4 className="font-medium flex items-center gap-2 mb-3">
-              <Box className="h-5 w-5 text-blue-600" />
-              Container Support
-            </h4>
-            <div className="space-y-3">
-            <div className={`p-3 rounded-lg ${deploymentFiles.hasDockerfile ? 'bg-green-50' : 'bg-gray-50'}`}>
-            <div className="flex items-center justify-between">
-                  <span className="font-medium">Docker Support</span>
-                  <span className={`text-sm ${deploymentFiles.hasDockerfile ? 'text-green-600' : 'text-gray-500'}`}>
-                    {deploymentFiles.hasDockerfile ? 'Available' : 'Not Found'}
-                  </span>
-                </div>
-                {deploymentFiles.hasDockerfile && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Project can be containerized using Docker
-                  </p>
-                )}
-              </div>
-              <div className={`p-3 rounded-lg ${deploymentFiles.hasDockerCompose ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Docker Compose</span>
-                  <span className={`text-sm ${deploymentFiles.hasDockerCompose ? 'text-green-600' : 'text-gray-500'}`}>
-                    {deploymentFiles.hasDockerCompose ? 'Available' : 'Not Found'}
-                  </span>
-                </div>
-                {deploymentFiles.hasDockerCompose && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Multi-container setup defined
-                  </p>
-                )}
+        <div className="space-y-4">
+          {/* Overall Status */}
+          <div className={`p-4 rounded-lg ${
+            localDeployment.canRunLocally ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+          }`}>
+            <div className="flex items-start gap-3">
+              {localDeployment.canRunLocally ? (
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              )}
+              <div>
+                <h4 className="font-medium">
+                  {localDeployment.canRunLocally ? 
+                    'Project can be run locally' : 
+                    'Some configuration required for local deployment'}
+                </h4>
+                <p className="text-sm mt-1">
+                  {localDeployment.canRunLocally ?
+                    'All necessary scripts and dependencies are present' :
+                    'Missing required configuration or dependencies'}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* CI/CD Configuration */}
-          <div className="p-4 border rounded-lg">
-            <h4 className="font-medium flex items-center gap-2 mb-3">
-              <Server className="h-5 w-5 text-purple-600" />
-              CI/CD Configuration
-            </h4>
-            <div className="space-y-3">
-              {[
-                {
-                  name: 'GitHub Actions',
-                  available: deploymentFiles.hasGithubActions,
-                  description: 'Automated workflows configured'
-                },
-                {
-                  name: 'CircleCI',
-                  available: deploymentFiles.hasCircleCI,
-                  description: 'CircleCI pipelines configured'
-                },
-                {
-                  name: 'Jenkins',
-                  available: deploymentFiles.hasJenkinsfile,
-                  description: 'Jenkins pipeline configured'
-                }
-              ].map(config => (
-                <div key={config.name} className={`p-3 rounded-lg ${config.available ? 'bg-green-50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{config.name}</span>
-                    <span className={`text-sm ${config.available ? 'text-green-600' : 'text-gray-500'}`}>
-                      {config.available ? 'Available' : 'Not Found'}
-                    </span>
-                  </div>
-                  {config.available && (
-                    <p className="text-sm text-gray-600 mt-1">{config.description}</p>
+          {/* Setup Requirements */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Terminal className="h-4 w-4" />
+                Required Scripts
+              </h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Start Script</span>
+                  {localDeployment.hasStartScript ? (
+                    <span className="text-green-600 text-sm">✓ Present</span>
+                  ) : (
+                    <span className="text-red-600 text-sm">✗ Missing</span>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Vercel Deployment */}
-        <div className="p-4 border rounded-lg">
-            <h4 className="font-medium flex items-center gap-2 mb-3">
-              <Cloud className="h-5 w-5 text-black" />
-              Vercel Deployment
-            </h4>
-            <div className="space-y-3">
-              <div className={`p-3 rounded-lg ${
-                (deploymentFiles.hasVercelConfig || deploymentFiles.hasNextConfig) 
-                ? 'bg-green-50' 
-                : 'bg-gray-50'
-              }`}>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Vercel Configuration</span>
-                  <span className={`text-sm ${
-                    (deploymentFiles.hasVercelConfig || deploymentFiles.hasNextConfig) 
-                    ? 'text-green-600' 
-                    : 'text-gray-500'
-                  }`}>
-                    {(deploymentFiles.hasVercelConfig || deploymentFiles.hasNextConfig) 
-                      ? 'Configured' 
-                      : 'Not Found'
-                    }
-                  </span>
+                  <span className="text-sm">Build Script</span>
+                  {localDeployment.hasBuildScript ? (
+                    <span className="text-green-600 text-sm">✓ Present</span>
+                  ) : (
+                    <span className="text-red-600 text-sm">✗ Missing</span>
+                  )}
                 </div>
-                {(deploymentFiles.hasVercelConfig || deploymentFiles.hasNextConfig) && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Project is configured for Vercel deployment
-                  </p>
-                )}
               </div>
-              <div className={`p-3 rounded-lg ${deploymentFiles.hasVercelGithubIntegration ? 'bg-green-50' : 'bg-gray-50'}`}>
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Server className="h-4 w-4" />
+                Environment Requirements
+              </h4>
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Vercel CI/CD</span>
-                  <span className={`text-sm ${deploymentFiles.hasVercelGithubIntegration ? 'text-green-600' : 'text-gray-500'}`}>
-                    {deploymentFiles.hasVercelGithubIntegration ? 'Integrated' : 'Not Found'}
+                  <span className="text-sm">Node.js Version</span>
+                  <span className="text-sm font-mono">
+                    {localDeployment.recommendedNodeVersion || '>=14.0.0'}
                   </span>
                 </div>
-                {deploymentFiles.hasVercelGithubIntegration && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Automatic deployments with GitHub integration
-                  </p>
-                )}
               </div>
             </div>
           </div>
 
-
-        {/* Infrastructure Configuration */}
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium flex items-center gap-2 mb-3">
-            <Cloud className="h-5 w-5 text-blue-600" />
-            Infrastructure Configuration
-          </h4>
-          <div className="space-y-3">
-            {[
-              {
-                type: 'Container Orchestration',
-                available: deploymentFiles.hasKubernetes,
-                description: 'Kubernetes configuration found',
-                files: ['kubernetes configs', 'k8s manifests']
-              },
-              {
-                type: 'Infrastructure as Code',
-                available: deploymentFiles.hasTerraform || deploymentFiles.hasCloudformation,
-                description: 'Infrastructure automation available',
-                files: ['Terraform files', 'CloudFormation templates']
-              },
-              {
-                type: 'Environment Configuration',
-                available: deploymentFiles.hasEnvConfig,
-                description: 'Environment variables configured',
-                files: ['.env templates', 'configuration files']
-              }
-            ].map(option => (
-              <div key={option.type} className="p-3 bg-white rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{option.type}</span>
-                  <span className={`text-sm ${option.available ? 'text-green-600' : 'text-gray-500'}`}>
-                    {option.available ? 'Available' : 'Not Configured'}
-                  </span>
-                </div>
-                {option.available && (
-                  <p className="text-sm text-gray-600">{option.description}</p>
-                )}
+          {/* Setup Instructions */}
+          {localDeployment.canRunLocally && (
+            <div className="mt-4">
+              <h4 className="font-medium mb-3">Local Setup Instructions</h4>
+              <div className="bg-gray-50 p-4 rounded-lg font-mono text-sm">
+                {localDeployment.setupSteps.map((step, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="text-gray-500">{index + 1}.</span>
+                    <code>{step}</code>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Missing Dependencies Warning */}
+          {localDeployment.missingDeps.length > 0 && (
+            <Alert variant="warning" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Missing Required Dependencies</AlertTitle>
+              <AlertDescription>
+                <p className="mt-2">The following core dependencies are missing:</p>
+                <ul className="list-disc pl-5 mt-2">
+                  {localDeployment.missingDeps.map(dep => (
+                    <li key={dep}>{dep}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </AnalysisSection>
-      {/* Dependency Types */}
-      <AnalysisSection title="Dependency Breakdown">
+
+      {/* Dependencies Overview */}
+      <AnalysisSection title="Dependencies Overview">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Production Dependencies */}
           <div className="space-y-4">
@@ -312,61 +219,37 @@ const DependenciesTab = ({ data }) => {
         </div>
       </AnalysisSection>
 
-      {/* Updates Available */}
-      {dependencies.outdated && dependencies.outdated.length > 0 && (
-        <AnalysisSection 
-          title="Available Updates"
-          subtitle="Packages with newer versions available"
-        >
-          <div className="space-y-4">
-            {dependencies.outdated.map((pkg) => (
-              <div key={pkg.name} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-medium">{pkg.name}</h4>
-                    <p className="text-sm text-gray-600">Current: {pkg.current}</p>
-                  </div>
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">
-                    Latest: {pkg.latest}
-                  </span>
-                </div>
-                {pkg.breaking && (
-                  <Alert variant="warning" className="mt-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Breaking Changes</AlertTitle>
-                    <AlertDescription>
-                      This update includes breaking changes. Review changelog before updating.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            ))}
-          </div>
-        </AnalysisSection>
-      )}
-
-      {/* Security Advisories */}
-      {dependencies.vulnerabilities && dependencies.vulnerabilities.length > 0 && (
-        <AnalysisSection 
-          title="Security Advisories"
-          subtitle="Known vulnerabilities in dependencies"
-        >
-          <div className="space-y-4">
-            {dependencies.vulnerabilities.map((vuln, index) => (
-              <Alert key={index} variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{vuln.package}</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p>{vuln.description}</p>
-                  <p className="text-sm">
-                    Severity: {vuln.severity} | Affected versions: {vuln.affectedVersions}
-                  </p>
-                </AlertDescription>
-              </Alert>
-            ))}
-          </div>
-        </AnalysisSection>
-      )}
+      {/* Development Tools */}
+      <AnalysisSection 
+        title="Development Tools"
+        subtitle="Analysis of development and build tools configuration"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              name: 'Build System',
+              value: dependencies.buildTool || 'react-scripts',
+              description: 'Tool used for building the project'
+            },
+            {
+              name: 'Test Framework',
+              value: dependencies.testFramework || 'Jest',
+              description: 'Testing framework configuration'
+            },
+            {
+              name: 'Package Manager',
+              value: dependencies.packageManager || 'npm',
+              description: 'Recommended package manager'
+            }
+          ].map((tool) => (
+            <div key={tool.name} className="p-4 border rounded-lg">
+              <h4 className="font-medium">{tool.name}</h4>
+              <p className="text-sm text-gray-600 mt-1">{tool.description}</p>
+              <p className="font-mono text-sm mt-2">{tool.value}</p>
+            </div>
+          ))}
+        </div>
+      </AnalysisSection>
     </div>
   );
 };
