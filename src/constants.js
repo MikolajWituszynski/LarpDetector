@@ -35,10 +35,11 @@ export const TABS = [
     label: 'Overview',
     icon: Activity,
   },
+
   {
-    id: 'dependencies',
-    label: 'Dependencies',
-    icon: Package,
+    id: 'started',
+    label: 'More Info',
+    icon: Info,
   },
 ];
 

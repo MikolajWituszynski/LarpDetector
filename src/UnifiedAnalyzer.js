@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { Alert, AlertTitle, AlertDescription } from "./components/ui/alert";
-import { X, Github, Command, Map, Info } from 'lucide-react';
+import { X, Github, Command, Map, Info,HelpCircle,AlertCircle,ShieldAlert } from 'lucide-react';
 import { analyzeGitHubRepo } from "./services/github";
 import { getHealthScoreColor, getHealthScoreDisplay } from "./constants";
 import { TABS } from "./constants";
 import Tab from "./components/tab-contents/Tab";
 import OverviewTab from "./components/tab-contents/OverviewTab";
-import CodeQualityTab from "./components/tab-contents/CodeQualityTab";
-import ActivityTab from "./components/tab-contents/ActivityTab";
-import CommunityTab from "./components/tab-contents/CommunityTab";
 import RoadmapSidebar from './components/tab-contents/RoadmapSidebar';
 import HowToStartSidebar from  './components/tab-contents/HowToStartSidebar'
 import SocialsSidebar from  './components/tab-contents/SocialsSidebar'
@@ -17,8 +14,8 @@ import { Badge } from "./components/ui/Badge";
 import MetricCard from './components/MetricCard';
 import XLogo from './components/ui/logo';
 import { useNavigate } from 'react-router-dom';
-import MainLogo from './components/ui/MainLogo';
-import DependenciesTab from './components/tab-contents/DependenciesTab';
+import GettingStartedTab from './components/tab-contents/GettingStartedTab';
+import { Tooltip,TooltipProvider,TooltipTrigger,TooltipContent } from './components/ui/tooltip';
 const UnifiedAnalyzer = ({ type = 'github' }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,10 +58,7 @@ const handleAnalyze = async () => {
 
     switch (activeTab) {
       case "overview": return <OverviewTab data={data} />;
-      case "code": return <CodeQualityTab data={data} />;
-      case "activity": return <ActivityTab data={data} />;
-      case "community": return <CommunityTab data={data} />;
-      case "dependencies": return <DependenciesTab data={data}/>
+      case "started": return <GettingStartedTab data={data}/>
       default: return <OverviewTab data={data} />;
     }
   };
@@ -79,8 +73,8 @@ const handleAnalyze = async () => {
             <div className="flex items-center space-x-8">
             <div className="flex items-center space-x-2">
               
-  <MainLogo className="text-black" size={32} />
-  <span className="font-mono text-xl font-bold">WarOnLarps</span>
+            <div className="flex items-center gap-3">
+            </div>  <span className="font-mono text-xl font-bold">WarOnLarps</span>
 </div>
               
               {/* Analysis Type Toggle */}
@@ -112,6 +106,18 @@ const handleAnalyze = async () => {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
+
+
+            <Button
+                variant="outline"
+                onClick={() => setHowToStartOpen(true)}
+                className="font-mono"
+              >
+            <Info className="h-4 w-4 mr-2" />
+            📚 How to Use!
+                <Badge variant="secondary" className="ml-2">New</Badge>
+              </Button>
+
               <Button
                 variant="outline"
                 onClick={() => setRoadmapOpen(true)}
@@ -127,7 +133,7 @@ const handleAnalyze = async () => {
                 className="font-mono"
               >
                 <div className="h-4 w-4 mr-2" />
-                Socials
+               🌐 Links
                 <Badge variant="secondary" className="ml-2">New</Badge>
               </Button>
             </div>
@@ -137,37 +143,94 @@ const handleAnalyze = async () => {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Input Section */}
-        <div className="bg-white p-6 rounded-lg border-2 border-black mb-6">
-          <div className="max-w-2xl">
-            <div className="flex space-x-3">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  
-                  {type === 'x' ? (
-                    <XLogo className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Github className="h-5 w-5 text-gray-400" />
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={type === 'github' ? 'https://github.com/user/repo' : 'Enter X handle...'}
-                  className="block w-full pl-10 pr-3 py-3 border-2 border-black font-mono text-base"
-                />
-              </div>
-              <Button
-                onClick={handleAnalyze}
-                disabled={loading}
-                className="bg-black hover:bg-gray-800 text-white px-6 font-mono"
-              >
-                {loading ? "..." : "ANALYZE"}
-              </Button>
-            </div>
+
+{/* Input Section */}
+<div className="bg-white p-6 rounded-lg border-2 border-black mb-6">
+  <div className="space-y-4">
+    <div className="max-w-2xl">
+      <div className="flex space-x-3">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            {type === 'x' ? (
+              <XLogo className="h-5 w-5 text-gray-400" />
+            ) : (
+              <Github className="h-5 w-5 text-gray-400" />
+            )}
           </div>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              type === 'github' 
+                ? 'Enter repository URL (e.g., https://github.com/facebook/react)' 
+                : 'Enter X handle (e.g., @username)'
+            }
+            className="block w-full pl-10 pr-10 py-3 border-2 border-black font-mono text-base"
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <HelpCircle className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  {type === 'github' 
+                    ? 'Enter a GitHub repository URL in the format: https://github.com/username/repository'
+                    : 'Enter an X (Twitter) handle with or without the @ symbol'
+                  }
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
+        <Button
+          onClick={handleAnalyze}
+          disabled={loading}
+          className="bg-black hover:bg-gray-800 text-white px-6 font-mono"
+        >
+          {loading ? "..." : "ANALYZE"}
+        </Button>
+      </div>
+    </div>
+
+    {/* Quick Examples */}
+    {type === 'github' && (
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <span>Try examples:</span>
+        <div className="flex gap-2">
+          {[
+            { name: 'Listen', url: 'https://github.com/piotrostr/listen' },
+            { name: 'Neur.sh', url: 'https://github.com/NeurProjects/neur-app' },
+          ].map((example) => (
+            <button
+              key={example.name}
+              onClick={() => setInput(example.url)}
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              {example.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Format Guide */}
+    <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+      <AlertCircle className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="font-medium text-gray-700">Quick Guide</p>
+        {type === 'github' ? (
+          <p>Enter a GitHub repository URL in the format: https://github.com/username/repository</p>
+        ) : (
+          <p>Enter an X (Twitter) handle with or without the @ symbol (e.g., @username or username)</p>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Error Display */}
         {error && (
@@ -275,7 +338,26 @@ const handleAnalyze = async () => {
           </div>
         )}
       </main>
-    </div>
+     {/* Footer Disclaimer */}
+     {/* Simplified Footer Disclaimer */}
+     <footer className="bg-gray-50 border-t border-gray-200 mt-auto">
+          <div className="max-w-6xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-center text-sm text-gray-600">
+              <ShieldAlert className="h-4 w-4 mr-2" />
+              <span>
+                DISCLAIMER: This tool is provided for informational and research purposes only and does not constitute financial, investment, legal, or tax advice. Past performance does not guarantee future results.{" "}
+                <a 
+                  href="#/terms" 
+                  className="text-blue-600 hover:text-blue-800 underline ml-1"
+                >
+                  For more information, visit our Terms and Conditions
+                </a>
+              </span>
+            </div>
+          </div>
+        </footer>
+      </div>
+    
      {/* Sidebars */}
      <RoadmapSidebar 
      open={roadmapOpen} 

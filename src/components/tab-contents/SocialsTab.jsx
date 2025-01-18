@@ -1,11 +1,11 @@
 import React from 'react';
-import { Twitter, MessageCircle, Lock, AlertCircle, Users, History, TrendingUp, Shield, ExternalLink } from 'lucide-react';
+import { Twitter, MessageCircle, Lock, AlertCircle, Users, History, TrendingUp, Shield, ExternalLink,BookA, Book } from 'lucide-react';
 import  Progress  from "../ui/Progress";
 import { Button } from "../ui/button";
 import MetricCard from '../MetricCard';
 import AnalysisSection from '../AnalysisSection';
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
-
+import XLogo from '../ui/logo';
 const ExternalLinkButton = ({ href, icon: Icon, children }) => (
   <Button
     variant="outline"
@@ -32,14 +32,20 @@ const SocialsTab = () => {
       >
         <div className="flex flex-wrap gap-3">
           <ExternalLinkButton
-            icon={Twitter}
+            icon={XLogo}
           >
-            Twitter Profile
+          (Twitter) Profile
           </ExternalLinkButton>
           <ExternalLinkButton
             icon={MessageCircle}
           >
             Telegram Group
+          </ExternalLinkButton>
+          <ExternalLinkButton
+           href="#/docs"
+            icon={Book}
+          >
+           Documentation
           </ExternalLinkButton>
           <ExternalLinkButton
             href="https://app.streamflow.finance/"

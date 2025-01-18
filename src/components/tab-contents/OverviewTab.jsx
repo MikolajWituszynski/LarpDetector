@@ -33,7 +33,7 @@ const OverviewTab = ({ data }) => {
     <div className="space-y-6">
       {/* Health Score Overview */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-semibold">Repository Health Analysis</h2>
           <div className={`px-4 py-2 rounded-full text-lg font-semibold ${
             health.score >= 80 ? 'bg-green-100 text-green-800' :
@@ -43,7 +43,7 @@ const OverviewTab = ({ data }) => {
             {health.score}/100
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-blue-600" />
             <div>
@@ -74,7 +74,7 @@ const OverviewTab = ({ data }) => {
       </div>
 
       {/* Community Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <MetricCard
           title="Stars"
           value={metrics.stars.toLocaleString()}
@@ -104,8 +104,8 @@ const OverviewTab = ({ data }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Development Activity */}
         <AnalysisSection title="Development Activity">
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="space-y-2">
+            <div className="p-3 bg-gray-40 rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Weekly Commits</span>
                 <span className="text-sm text-gray-600">{metrics.weeklyCommits} avg</span>
@@ -115,7 +115,7 @@ const OverviewTab = ({ data }) => {
                 className="h-2"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Active Days</p>
                 <p className="text-xl font-semibold">{

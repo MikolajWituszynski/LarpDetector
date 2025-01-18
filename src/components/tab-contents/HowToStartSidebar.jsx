@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Info, ChevronLeft, Activity, Shield, GitBranch, Users, Copy, CheckCheck, AlertTriangle, Check } from 'lucide-react';
 import { Button } from "../ui/button";
-
+import { useCallback,useEffect } from 'react';
 const EXAMPLE_REPOS = [
   {
     name: "Uniswap v3",
@@ -63,61 +63,119 @@ const GREEN_FLAGS = [
 const HowToStartSidebar = ({ open, onClose }) => {
   const [activeSection, setActiveSection] = useState('howto');
   const [copiedRepo, setCopiedRepo] = useState(null);
+  const [width, setWidth] = useState(384); // 96 * 4 = 384px (w-96 equivalent)
+  const [isResizing, setIsResizing] = useState(false);
+  const [showResizeTooltip, setShowResizeTooltip] = useState(false);
 
-  const copyToClipboard = (repo) => {
-    navigator.clipboard.writeText(repo.url);
-    setCopiedRepo(repo.name);
-    setTimeout(() => setCopiedRepo(null), 2000);
+  
+// Handle mouse move for resizing
+const handleMouseMove = useCallback((e) => {
+  if (isResizing) {
+    const newWidth = e.clientX;
+    // Set min and max width limits
+    if (newWidth >= 320 && newWidth <= 800) {
+      setWidth(newWidth);
+    }
+  }
+}, [isResizing]);
+
+// Handle mouse up to stop resizing
+const handleMouseUp = useCallback(() => {
+  setIsResizing(false);
+  setShowResizeTooltip(false);
+
+}, []);
+
+// Add and remove event listeners
+useEffect(() => {
+  if (isResizing) {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }
+  return () => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
   };
+}, [isResizing, handleMouseMove, handleMouseUp]);
 
+const copyToClipboard = (repo) => {
+  navigator.clipboard.writeText(repo.url);
+  setCopiedRepo(repo.name);
+  setTimeout(() => setCopiedRepo(null), 2000);
+};
   return (
+   
     <>
-      {open && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-30"
-          onClick={onClose}
-        />
-      )}
-      <div className={`
-        fixed inset-y-0 left-0 z-40
-        w-96
-        transform transition-transform duration-200 ease-in-out
-        ${open ? 'translate-x-0' : '-translate-x-full'}
-        bg-white border-r border-gray-200
-      `}>
-        <div className="h-full flex flex-col">
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-blue-600">
-                <Info className="h-5 w-5" />
-                <h2 className="font-medium">Rug Check Guide</h2>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant={activeSection === 'howto' ? 'default' : 'outline'}
-                onClick={() => setActiveSection('howto')}
-                className="flex-1"
-              >
-                Quick Check
-              </Button>
-              <Button
-                variant={activeSection === 'detailed' ? 'default' : 'outline'}
-                onClick={() => setActiveSection('detailed')}
-                className="flex-1"
-              >
-                DYOR Details
-              </Button>
-            </div>
-          </div>
+    {open && (
+      <div 
+        className="fixed inset-0 bg-black/20 z-30"
+        onClick={onClose}
+      />
+    )}
+      <div 
+        className={`
+          fixed inset-y-0 left-0 z-40
+          transform transition-transform duration-200 ease-in-out
+          ${open ? 'translate-x-0' : '-translate-x-full'}
+          bg-white border-r border-gray-200 flex
+        `}
+        style={{ width: `${width}px` }}
+      >
+<div className="flex flex-col h-full w-full">
+
+{/* Header with compact styling */}
+<div className="p-3 border-b border-gray-200 flex-shrink-0 bg-white">
+  <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center gap-2">
+      <Info className="h-4 w-4 text-blue-600" />
+      <h2 className="font-medium">Rug Check Guide</h2>
+    </div>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onClose}
+      className="h-8 w-8 hover:bg-gray-100 rounded-full"
+    >
+      <ChevronLeft className="h-4 w-4" />
+    </Button>
+  </div>
+  
+  <div className="flex gap-2">
+    <button
+      onClick={() => setActiveSection('howto')}
+      className={`
+        flex-1 px-3 py-2 rounded-lg transition-all duration-200 text-sm
+        ${activeSection === 'howto'
+          ? 'bg-black text-white'
+          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+        }
+      `}
+    >
+      <div className="flex items-center justify-center gap-1.5">
+        <span>🔍</span>
+        <span className="font-medium">Quick Check</span>
+        <div className="text-xs opacity-75">5-min basic scan</div>
+
+      </div>
+    </button>
+
+    <button
+      onClick={() => setActiveSection('detailed')}
+      className={`
+        flex-1 px-3 py-2 rounded-lg transition-all duration-200 text-sm
+        ${activeSection === 'detailed'
+          ? 'bg-black text-white'
+          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+        }
+      `}
+    >
+      <div className="flex items-center justify-center gap-1.5">
+        <span>🔎</span>
+        <span className="font-medium">DYOR Details</span>
+      </div>
+    </button>
+  </div>
+</div>
 
           <div className="flex-1 overflow-y-auto p-4">
             {activeSection === 'howto' ? (
@@ -125,10 +183,10 @@ const HowToStartSidebar = ({ open, onClose }) => {
               <div className="space-y-6">
                 {/* Why Check GitHub */}
                 <div className="bg-blue-50 rounded-lg p-4">
-                  <h3 className="font-medium text-lg mb-2">Why Check GitHub? 🔍</h3>
+                  <h3 className="font-medium text-lg mb-2">GitHub is your #1 tool to verify project legitimacy.</h3>
                   <p className="text-gray-700 mb-3">
                     GitHub shows you the actual code behind a token or DeFi project. 
-                    No GitHub or empty code? Major red flag! 🚩
+                    No GitHub or empty code? Major red flag! 
                   </p>
                   <div className="bg-yellow-50 rounded p-3 text-sm">
                     <p className="font-medium text-yellow-800">Pro Tip:</p>
@@ -204,15 +262,15 @@ const HowToStartSidebar = ({ open, onClose }) => {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 bg-green-500 rounded-full" />
-                      <span>80+ = Based ✨ Likely legit project</span>
+                      <span>80+ = ✨ Likely legit project</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 bg-yellow-500 rounded-full" />
-                      <span>60-80 = DYOR 🔍 Check team & socials</span>
+                      <span>60-80 =🔍 Check team & socials</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 bg-red-500 rounded-full" />
-                      <span>Below 60 = Sus 🚩 High risk of rug</span>
+                      <span>Below 45 = 🚩 High risk of rug</span>
                     </div>
                   </div>
                 </div>
@@ -272,7 +330,49 @@ const HowToStartSidebar = ({ open, onClose }) => {
             )}
           </div>
         </div>
-      </div>
+
+       {/* Enhanced Resize Handle */}
+       <div
+          className={`
+            absolute top-0 right-0 w-4 h-full 
+            cursor-ew-resize hover:bg-blue-50 
+            transition-colors duration-200
+            flex items-center justify-center
+            ${isResizing ? 'bg-blue-100' : ''}
+          `}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsResizing(true);
+          }}
+          onMouseEnter={() => setShowResizeTooltip(true)}
+          onMouseLeave={() => !isResizing && setShowResizeTooltip(false)}
+        >
+          {/* Resize Handle Bar */}
+          <div className="w-0.5 h-8 bg-gray-300 group-hover:bg-blue-400 rounded-full" />
+          
+          {/* Resize Tooltip */}
+          {showResizeTooltip && (
+            <div className="
+              absolute right-6 top-1/2 -translate-y-1/2
+              bg-gray-800 text-white px-2 py-1 rounded text-sm
+              whitespace-nowrap
+            ">
+              Drag to resize
+            </div>
+          )}
+          
+          {/* Size Indicator during resize */}
+          {isResizing && (
+            <div className="
+              absolute bottom-4 right-6
+              bg-gray-800 text-white px-2 py-1 rounded text-sm
+              whitespace-nowrap
+            ">
+              {width}px
+            </div>
+          )}
+        </div>
+        </div>
     </>
   );
 };
